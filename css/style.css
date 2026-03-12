@@ -131,6 +131,64 @@ html, body {
   image-rendering: crisp-edges;
 }
 
+/* More menu (…) */
+.more-menu-wrap {
+  position: relative;
+}
+
+.more-dots {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.more-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  background: var(--bg-surface);
+  border: 1px solid var(--accent);
+  min-width: 110px;
+  padding: 2px 0;
+}
+
+.more-menu.visible {
+  display: block;
+}
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.more-menu-item:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.more-menu-item img {
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 /* Grid size button */
 .size-btn {
   height: 28px;

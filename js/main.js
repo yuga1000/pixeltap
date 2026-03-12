@@ -766,7 +766,28 @@ class PixelPaintApp {
     // Photo import
     const photoBtn = document.getElementById('btn-photo');
     if (photoBtn) {
-      photoBtn.addEventListener('click', () => this._importPhoto());
+      photoBtn.addEventListener('click', () => {
+        this._importPhoto();
+        document.getElementById('more-menu')?.classList.remove('visible');
+      });
+    }
+
+    // More menu (…)
+    const moreBtn = document.getElementById('btn-more');
+    const moreMenu = document.getElementById('more-menu');
+    if (moreBtn && moreMenu) {
+      moreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        moreMenu.classList.toggle('visible');
+      });
+      // Close on tap outside
+      document.addEventListener('click', () => {
+        moreMenu.classList.remove('visible');
+      });
+      // Close on clear button click
+      document.getElementById('btn-clear')?.addEventListener('click', () => {
+        moreMenu.classList.remove('visible');
+      });
     }
 
     // Shop / PRO button
