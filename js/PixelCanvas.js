@@ -129,6 +129,8 @@ export class PixelCanvas {
     this.referenceImage = null;
     this.referenceOpacity = 0.3;
     this.referenceScale = 1;
+    this.referenceOffsetX = 0;
+    this.referenceOffsetY = 0;
 
     // View
     this.zoom = 1;
@@ -376,8 +378,8 @@ export class PixelCanvas {
         drawH = canvasH * scale;
         drawW = (canvasH * imgRatio) * scale;
       }
-      drawX = startX + (canvasW - drawW) / 2;
-      drawY = startY + (canvasH - drawH) / 2;
+      drawX = startX + (canvasW - drawW) / 2 + (this.referenceOffsetX || 0) * size;
+      drawY = startY + (canvasH - drawH) / 2 + (this.referenceOffsetY || 0) * size;
       ctx.imageSmoothingEnabled = true;
       ctx.drawImage(this.referenceImage, drawX, drawY, drawW, drawH);
       ctx.restore();

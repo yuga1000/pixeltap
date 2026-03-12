@@ -623,6 +623,28 @@ html, body {
 }
 
 /* ===== Animation Timeline ===== */
+#timeline-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+#timeline-toggle:active { opacity: 1; }
+#timeline-toggle.active { opacity: 1; color: var(--accent); }
+
 #timeline-bar {
   display: flex;
   align-items: center;
@@ -634,6 +656,14 @@ html, body {
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  transition: height 0.2s, padding 0.2s, opacity 0.2s;
+}
+#timeline-bar.collapsed {
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+  border-top: none;
+  opacity: 0;
 }
 
 #timeline-bar::-webkit-scrollbar { display: none; }

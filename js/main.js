@@ -1445,11 +1445,25 @@ class PixelPaintApp {
       this.pixelCanvas.render();
     });
 
+    // Move toggle button
+    const moveBtn = document.createElement('button');
+    moveBtn.style.cssText = 'padding:2px 5px;border:1px solid #2a2a2a;background:#161616;color:#00b4ff;font-family:var(--font);font-size:9px;cursor:pointer;font-weight:bold;';
+    moveBtn.textContent = 'MOVE';
+    moveBtn.addEventListener('click', () => {
+      this._refMoveMode = !this._refMoveMode;
+      moveBtn.style.background = this._refMoveMode ? '#00b4ff' : '#161616';
+      moveBtn.style.color = this._refMoveMode ? '#000' : '#00b4ff';
+    });
+
     const removeBtn = document.createElement('button');
     removeBtn.style.cssText = 'padding:2px 5px;border:1px solid #2a2a2a;background:#161616;color:#ff3333;font-family:var(--font);font-size:9px;cursor:pointer;font-weight:bold;';
     removeBtn.textContent = 'X';
     removeBtn.addEventListener('click', () => {
       this.pixelCanvas.referenceImage = null;
+      this.pixelCanvas.referenceOffsetX = 0;
+      this.pixelCanvas.referenceOffsetY = 0;
+      this.pixelCanvas.referenceScale = 1;
+      this._refMoveMode = false;
       this.pixelCanvas.render();
       bar.remove();
     });
@@ -1460,6 +1474,7 @@ class PixelPaintApp {
     bar.appendChild(scaleLabel);
     bar.appendChild(scaleSlider);
     bar.appendChild(scaleVal);
+    bar.appendChild(moveBtn);
     bar.appendChild(removeBtn);
 
     // Insert before onion-bar
@@ -1784,6 +1799,16 @@ class PixelPaintApp {
   // ANIMATION TIMELINE
   // ============================================================
   _setupTimeline() {
+    // Collapsible timeline toggle
+    const toggleBtn = document.getElementById('timeline-toggle');
+    const timelineBar = document.getElementById('timeline-bar');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const collapsed = timelineBar.classList.toggle('collapsed');
+        toggleBtn.classList.toggle('active', !collapsed);
+      });
+    }
+
     document.getElementById('btn-add-frame').addEventListener('click', () => {
       if (!this._requirePro('Animation')) return;
       this._saveCurrentFrame();
@@ -1883,6 +1908,16 @@ class PixelPaintApp {
   }
 
   _refreshTimeline() {
+    // Auto-expand timeline when multiple frames exist
+    if (this.animFrames.length > 1) {
+      const tBar = document.getElementById('timeline-bar');
+      const tToggle = document.getElementById('timeline-toggle');
+      if (tBar?.classList.contains('collapsed')) {
+        tBar.classList.remove('collapsed');
+        tToggle?.classList.add('active');
+      }
+    }
+
     // Update frame counter
     const counter = document.getElementById('frame-counter');
     if (counter) {
@@ -2231,6 +2266,15 @@ class PixelPaintApp {
       this.isDrawing = false;
       return;
     }
+    // REF move mode — drag photo reference
+    if (this._refMoveMode && this.pixelCanvas.referenceImage && e.touches.length === 1) {
+      this._refDragging = true;
+      this._refDragStartX = e.touches[0].clientX;
+      this._refDragStartY = e.touches[0].clientY;
+      this._refDragInitOX = this.pixelCanvas.referenceOffsetX;
+      this._refDragInitOY = this.pixelCanvas.referenceOffsetY;
+      return;
+    }
     // Block drawing during playback unless live draw mode is on (pencil/eraser/line only)
     if (this.isPlaying && !(this.liveDrawMode && ['pencil', 'eraser', 'line'].includes(this.currentTool))) return;
     if (e.touches.length === 1 && !this.isPinching) {
@@ -2251,6 +2295,16 @@ class PixelPaintApp {
       this._updatePinch(e);
       return;
     }
+    // REF move drag
+    if (this._refDragging && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - this._refDragStartX;
+      const dy = e.touches[0].clientY - this._refDragStartY;
+      const size = this.pixelCanvas.cellSize;
+      this.pixelCanvas.referenceOffsetX = this._refDragInitOX + dx / size;
+      this.pixelCanvas.referenceOffsetY = this._refDragInitOY + dy / size;
+      this.pixelCanvas.render();
+      return;
+    }
     if (e.touches.length === 1 && this.isDrawing && !this.isPinching) {
       const touch = e.touches[0];
       const grid = this.pixelCanvas.screenToGrid(touch.clientX, touch.clientY);
@@ -2264,6 +2318,7 @@ class PixelPaintApp {
   _onTouchEnd(e) {
     if (e.touches.length < 2) this.isPinching = false;
     if (e.touches.length === 0) {
+      this._refDragging = false;
       if (this.isDrawing) {
         this.isDrawing = false;
         this.activeTool.onEnd(this);
