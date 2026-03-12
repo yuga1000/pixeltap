@@ -973,44 +973,25 @@ class PixelPaintApp {
   _loadTemplate(template) {
     const { pixels, width, height } = parseTemplate(template);
 
-    // Resize canvas if needed
-    if (width !== this.pixelCanvas.gridWidth || height !== this.pixelCanvas.gridHeight) {
-      if (confirm(`Template is ${width}x${height}. Resize canvas?\n\nOK = resize & load\nCancel = load centered`)) {
-        this.pixelCanvas.setGridSize(width, height);
-        this._syncGridSizeUI();
-        this.animFrames = [this.pixelCanvas.getSnapshot()];
-        this.currentFrameIndex = 0;
-        this._refreshTimeline();
-      }
-    }
+    // Commit any existing selection first
+    if (this.selection) this._commitSelection();
 
-    // Load onto new layer if canvas has content
-    const isEmpty = this.pixelCanvas.activeLayer.pixels.every(row => row.every(p => p === null));
-    if (!isEmpty && this.pixelCanvas.layers.length < 20) {
-      this.pixelCanvas.addLayer('Tpl: ' + template.name);
-    }
-
-    const layer = this.pixelCanvas.activeLayer;
+    // Center template on canvas as a floating selection
     const offsetX = Math.max(0, Math.floor((this.pixelCanvas.gridWidth - width) / 2));
     const offsetY = Math.max(0, Math.floor((this.pixelCanvas.gridHeight - height) / 2));
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const color = pixels[y][x];
-        if (color !== null) {
-          const tx = x + offsetX;
-          const ty = y + offsetY;
-          if (tx < this.pixelCanvas.gridWidth && ty < this.pixelCanvas.gridHeight) {
-            layer.pixels[ty][tx] = color;
-          }
-        }
-      }
-    }
+    this.selection = {
+      x: offsetX,
+      y: offsetY,
+      w: width,
+      h: height,
+      pixels,
+    };
 
+    // Switch to select tool so user can drag it
+    this.setTool('select');
     this.pixelCanvas.render();
-    this._saveState();
-    this._refreshLayersList();
-    this.pixelCanvas.fitToScreen();
+    this._renderSelectionOverlay();
   }
 
   // ============================================================
