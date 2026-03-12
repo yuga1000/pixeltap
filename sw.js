@@ -1,8 +1,9 @@
 /**
  * PixelTap Service Worker — offline support for PWA.
- * Caches app shell; network-first for everything else.
+ * Network-first strategy: always tries network, falls back to cache.
+ * Bump CACHE_NAME on each deploy to force update.
  */
-const CACHE_NAME = 'pixeltap-v1';
+const CACHE_NAME = 'pixeltap-v2';
 
 const APP_SHELL = [
   '/',
@@ -38,7 +39,7 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Fetch — cache-first for app shell, network-first for API/external
+// Fetch — network-first, cache as fallback
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
@@ -47,21 +48,22 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return;
 
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(response => {
-        // Cache successful responses for same-origin
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      });
-    }).catch(() => {
-      // Offline fallback
-      if (e.request.mode === 'navigate') {
-        return caches.match('/index.html');
+    fetch(e.request).then(response => {
+      // Update cache with fresh response
+      if (response.ok) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
       }
+      return response;
+    }).catch(() => {
+      // Network failed — try cache
+      return caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        // Offline fallback for navigation
+        if (e.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+      });
     })
   );
 });
