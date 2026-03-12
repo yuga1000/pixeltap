@@ -99,8 +99,11 @@ class PixelPaintApp {
     this._saveTimeout = null;
     this._zoomTimeout = null;
 
-    // PRO status
+    // PRO status — load from localStorage first, then sync from CloudStorage
     this.isPro = localStorage.getItem('pixeltap-pro') === '1';
+
+    // Sync PRO from Telegram CloudStorage (cross-device)
+    this._syncProFromCloud();
 
     // Gallery — current project
     this._currentProjectId = localStorage.getItem('pixeltap-current-project') || null;
@@ -227,7 +230,26 @@ class PixelPaintApp {
   _unlockPro() {
     this.isPro = true;
     localStorage.setItem('pixeltap-pro', '1');
+    // Save to Telegram CloudStorage for cross-device sync
+    try {
+      const cs = window.Telegram?.WebApp?.CloudStorage;
+      if (cs) cs.setItem('pixeltap-pro', '1');
+    } catch (e) { /* not in Telegram */ }
     this._applyProState();
+  }
+
+  _syncProFromCloud() {
+    try {
+      const cs = window.Telegram?.WebApp?.CloudStorage;
+      if (!cs) return;
+      cs.getItem('pixeltap-pro', (err, value) => {
+        if (!err && value === '1' && !this.isPro) {
+          this.isPro = true;
+          localStorage.setItem('pixeltap-pro', '1');
+          this._applyProState();
+        }
+      });
+    } catch (e) { /* not in Telegram */ }
   }
 
   _applyProState() {
