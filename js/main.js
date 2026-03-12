@@ -13,7 +13,7 @@ import {
   ICON_UNDO, ICON_REDO, ICON_GRID, ICON_LAYERS,
   ICON_CLEAR, ICON_EXPORT, ICON_ONION, ICON_PLAY, ICON_STOP,
   ICON_SYM_OFF, ICON_SYM_V, ICON_SYM_H, ICON_SYM_BOTH,
-  ICON_PHOTO, ICON_TEMPLATES,
+  ICON_PHOTO, ICON_TEMPLATES, ICON_GALLERY,
 } from './icons.js';
 import { TEMPLATE_CATEGORIES, TEMPLATES, parseTemplate, renderTemplatePreview } from './templates.js';
 
@@ -102,6 +102,9 @@ class PixelPaintApp {
     // PRO status
     this.isPro = localStorage.getItem('pixeltap-pro') === '1';
 
+    // Gallery — current project
+    this._currentProjectId = localStorage.getItem('pixeltap-current-project') || null;
+
     this._init();
   }
 
@@ -116,11 +119,16 @@ class PixelPaintApp {
     this.pixelCanvas = new PixelCanvas(canvasEl);
     this.history = new History(50);
 
-    // Load saved project
-    const loaded = this.pixelCanvas.loadFromStorage();
+    // Load saved project (project-specific slot if available, else default)
+    const projKey = this._currentProjectId ? 'pixeltap-proj-' + this._currentProjectId : 'pixelpaint-project';
+    const loaded = this.pixelCanvas.loadFromStorage(projKey);
 
     // Load saved animation frames
-    this._loadAnimFromStorage();
+    if (this._currentProjectId) {
+      this._loadAnimFromStorage('pixeltap-anim-' + this._currentProjectId);
+    } else {
+      this._loadAnimFromStorage();
+    }
 
     requestAnimationFrame(() => {
       this.pixelCanvas.fitToScreen();
@@ -257,6 +265,7 @@ class PixelPaintApp {
     set('icon-clear', ICON_CLEAR);
     set('icon-export', ICON_EXPORT);
     set('icon-templates', ICON_TEMPLATES);
+    set('icon-gallery', ICON_GALLERY);
 
     // Bottom bar tools
     set('icon-tool-pencil', ICON_PENCIL);
@@ -294,8 +303,21 @@ class PixelPaintApp {
   }
 
   _autoSave() {
+    // Save to default slot
     this.pixelCanvas.saveToStorage();
     this._saveAnimToStorage();
+    // Also save to project-specific slot if we have a current project
+    if (this._currentProjectId) {
+      this.pixelCanvas.saveToStorage('pixeltap-proj-' + this._currentProjectId);
+      try {
+        const animData = {
+          frames: this.animFrames,
+          currentFrameIndex: this.currentFrameIndex,
+          fps: this.fps,
+        };
+        localStorage.setItem('pixeltap-anim-' + this._currentProjectId, JSON.stringify(animData));
+      } catch (e) { /* ignore */ }
+    }
   }
 
   // ============================================================
@@ -314,9 +336,9 @@ class PixelPaintApp {
     }
   }
 
-  _loadAnimFromStorage() {
+  _loadAnimFromStorage(key = 'pixeltap-anim') {
     try {
-      const raw = localStorage.getItem('pixeltap-anim');
+      const raw = localStorage.getItem(key);
       if (!raw) return;
       const data = JSON.parse(raw);
       if (data.frames && data.frames.length > 0) {
@@ -752,6 +774,9 @@ class PixelPaintApp {
 
     // Template library
     this._setupTemplateModal();
+
+    // Gallery
+    this._setupGallery();
   }
 
   // ============================================================
@@ -986,6 +1011,344 @@ class PixelPaintApp {
     this._saveState();
     this._refreshLayersList();
     this.pixelCanvas.fitToScreen();
+  }
+
+  // ============================================================
+  // GALLERY — save/load multiple projects
+  // ============================================================
+  _setupGallery() {
+    const modal = document.getElementById('gallery-modal');
+    const closeBtn = document.getElementById('btn-close-gallery');
+    const openBtn = document.getElementById('btn-gallery');
+    const newBtn = document.getElementById('btn-gallery-new');
+    if (!modal || !openBtn) return;
+
+    // Current project ID (null = default unnamed project)
+    if (!this._currentProjectId) {
+      this._currentProjectId = localStorage.getItem('pixeltap-current-project') || null;
+    }
+
+    openBtn.addEventListener('click', () => {
+      this._renderGallery();
+      modal.classList.add('visible');
+    });
+
+    closeBtn.addEventListener('click', () => modal.classList.remove('visible'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('visible');
+    });
+
+    newBtn.addEventListener('click', () => {
+      const name = prompt('Project name:');
+      if (!name || !name.trim()) return;
+      this._gallerySaveCurrentProject();
+      this._galleryCreateNew(name.trim());
+      modal.classList.remove('visible');
+    });
+  }
+
+  _getGalleryIndex() {
+    try {
+      const raw = localStorage.getItem('pixeltap-gallery');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  _saveGalleryIndex(index) {
+    localStorage.setItem('pixeltap-gallery', JSON.stringify(index));
+  }
+
+  _gallerySaveCurrentProject() {
+    // Save current canvas + animation to a project slot
+    const id = this._currentProjectId || ('proj_' + Date.now());
+    this._currentProjectId = id;
+    localStorage.setItem('pixeltap-current-project', id);
+
+    // Save canvas data
+    this.pixelCanvas.saveToStorage('pixeltap-proj-' + id);
+
+    // Save animation data
+    const animData = {
+      frames: this.animFrames,
+      currentFrameIndex: this.currentFrameIndex,
+      fps: this.fps,
+    };
+    try {
+      localStorage.setItem('pixeltap-anim-' + id, JSON.stringify(animData));
+    } catch (e) { console.warn('Gallery anim save failed:', e); }
+
+    // Generate thumbnail
+    const thumb = this._galleryThumbnail();
+
+    // Update gallery index
+    const index = this._getGalleryIndex();
+    const existing = index.find(p => p.id === id);
+    if (existing) {
+      existing.thumb = thumb;
+      existing.updatedAt = Date.now();
+      existing.w = this.pixelCanvas.gridWidth;
+      existing.h = this.pixelCanvas.gridHeight;
+    } else {
+      index.unshift({
+        id,
+        name: 'Untitled',
+        thumb,
+        w: this.pixelCanvas.gridWidth,
+        h: this.pixelCanvas.gridHeight,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+    this._saveGalleryIndex(index);
+  }
+
+  _galleryThumbnail() {
+    // Render a small thumbnail data URL from current canvas
+    const src = this.pixelCanvas.canvas;
+    const size = 80;
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, size, size);
+    // Fit proportionally
+    const gw = this.pixelCanvas.gridWidth;
+    const gh = this.pixelCanvas.gridHeight;
+    const scale = Math.min(size / gw, size / gh);
+    const dw = gw * scale;
+    const dh = gh * scale;
+    const dx = (size - dw) / 2;
+    const dy = (size - dh) / 2;
+    // Render layers composited to a temp canvas first
+    const tmp = document.createElement('canvas');
+    tmp.width = gw; tmp.height = gh;
+    const tctx = tmp.getContext('2d');
+    for (const layer of this.pixelCanvas.layers) {
+      if (!layer.visible) continue;
+      tctx.globalAlpha = layer.opacity;
+      for (let y = 0; y < gh; y++) {
+        for (let x = 0; x < gw; x++) {
+          const px = layer.pixels[y]?.[x];
+          if (px) {
+            tctx.fillStyle = px;
+            tctx.fillRect(x, y, 1, 1);
+          }
+        }
+      }
+    }
+    tctx.globalAlpha = 1;
+    ctx.drawImage(tmp, dx, dy, dw, dh);
+    return c.toDataURL('image/png');
+  }
+
+  _galleryCreateNew(name) {
+    const id = 'proj_' + Date.now();
+    this._currentProjectId = id;
+    localStorage.setItem('pixeltap-current-project', id);
+
+    // Reset canvas
+    this.pixelCanvas.setGridSize(32, 32);
+    this.pixelCanvas.layers.forEach(l => {
+      l.pixels = l.pixels.map(row => row.map(() => null));
+    });
+    // Keep only one layer
+    while (this.pixelCanvas.layers.length > 1) {
+      this.pixelCanvas.layers.pop();
+    }
+    this.pixelCanvas.layers[0].name = 'Layer 1';
+    this.pixelCanvas.activeLayerIndex = 0;
+    this.pixelCanvas.bgColor = null;
+
+    // Reset animation
+    this.animFrames = [this.pixelCanvas.getSnapshot()];
+    this.currentFrameIndex = 0;
+    this.fps = 8;
+    document.getElementById('fps-input').value = this.fps;
+
+    this.pixelCanvas.render();
+    this.pixelCanvas.fitToScreen();
+    this._syncGridSizeUI();
+    this._refreshTimeline();
+    this._refreshLayersList();
+    this.history.clear();
+    this.history.push(this.pixelCanvas.getSnapshot());
+
+    // Save to gallery index
+    const thumb = this._galleryThumbnail();
+    const index = this._getGalleryIndex();
+    index.unshift({
+      id, name, thumb,
+      w: 32, h: 32,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    this._saveGalleryIndex(index);
+
+    // Auto-save
+    this._autoSave();
+  }
+
+  _galleryLoadProject(id) {
+    const loaded = this.pixelCanvas.loadFromStorage('pixeltap-proj-' + id);
+    if (!loaded) return false;
+
+    this._currentProjectId = id;
+    localStorage.setItem('pixeltap-current-project', id);
+
+    // Load animation
+    try {
+      const raw = localStorage.getItem('pixeltap-anim-' + id);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.frames && data.frames.length > 0) {
+          this.animFrames = data.frames;
+          this.currentFrameIndex = data.currentFrameIndex || 0;
+          this.fps = data.fps || 8;
+          document.getElementById('fps-input').value = this.fps;
+        }
+      } else {
+        this.animFrames = [this.pixelCanvas.getSnapshot()];
+        this.currentFrameIndex = 0;
+      }
+    } catch (e) {
+      this.animFrames = [this.pixelCanvas.getSnapshot()];
+      this.currentFrameIndex = 0;
+    }
+
+    this.pixelCanvas.render();
+    this.pixelCanvas.fitToScreen();
+    this._syncGridSizeUI();
+    this._refreshTimeline();
+    this._refreshLayersList();
+    this._updateOnionSkin();
+    this.history.clear();
+    this.history.push(this.pixelCanvas.getSnapshot());
+
+    return true;
+  }
+
+  _galleryDeleteProject(id) {
+    localStorage.removeItem('pixeltap-proj-' + id);
+    localStorage.removeItem('pixeltap-anim-' + id);
+    const index = this._getGalleryIndex().filter(p => p.id !== id);
+    this._saveGalleryIndex(index);
+
+    // If deleting current project, switch to blank
+    if (id === this._currentProjectId) {
+      this._currentProjectId = null;
+      localStorage.removeItem('pixeltap-current-project');
+    }
+  }
+
+  _galleryRenameProject(id, newName) {
+    const index = this._getGalleryIndex();
+    const proj = index.find(p => p.id === id);
+    if (proj) {
+      proj.name = newName;
+      this._saveGalleryIndex(index);
+    }
+  }
+
+  _renderGallery() {
+    // Save current project first so thumbnail is up-to-date
+    this._gallerySaveCurrentProject();
+
+    const grid = document.getElementById('gallery-grid');
+    grid.innerHTML = '';
+
+    const index = this._getGalleryIndex();
+    if (index.length === 0) {
+      grid.innerHTML = '<div class="gallery-empty">No saved projects yet</div>';
+      return;
+    }
+
+    for (const proj of index) {
+      const card = document.createElement('div');
+      card.className = 'gallery-card';
+      if (proj.id === this._currentProjectId) card.classList.add('active');
+
+      // Thumbnail
+      const canvas = document.createElement('canvas');
+      canvas.width = 80; canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      if (proj.thumb) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, 80, 80);
+        img.src = proj.thumb;
+      } else {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, 80, 80);
+      }
+      card.appendChild(canvas);
+
+      // Info
+      const info = document.createElement('div');
+      info.className = 'gallery-card-info';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'gallery-card-name';
+      nameEl.textContent = proj.name;
+      info.appendChild(nameEl);
+      const sizeEl = document.createElement('div');
+      sizeEl.className = 'gallery-card-size';
+      sizeEl.textContent = `${proj.w}x${proj.h}`;
+      info.appendChild(sizeEl);
+      card.appendChild(info);
+
+      // Actions
+      const actions = document.createElement('div');
+      actions.className = 'gallery-card-actions';
+
+      const loadBtn = document.createElement('button');
+      loadBtn.textContent = proj.id === this._currentProjectId ? 'current' : 'open';
+      if (proj.id === this._currentProjectId) loadBtn.disabled = true;
+      loadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (proj.id === this._currentProjectId) return;
+        this._gallerySaveCurrentProject();
+        if (this._galleryLoadProject(proj.id)) {
+          document.getElementById('gallery-modal').classList.remove('visible');
+        }
+      });
+      actions.appendChild(loadBtn);
+
+      const renBtn = document.createElement('button');
+      renBtn.textContent = 'rename';
+      renBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newName = prompt('New name:', proj.name);
+        if (newName && newName.trim()) {
+          this._galleryRenameProject(proj.id, newName.trim());
+          this._renderGallery();
+        }
+      });
+      actions.appendChild(renBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'danger';
+      delBtn.textContent = 'del';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!confirm(`Delete "${proj.name}"?`)) return;
+        this._galleryDeleteProject(proj.id);
+        this._renderGallery();
+      });
+      actions.appendChild(delBtn);
+
+      card.appendChild(actions);
+
+      // Click card to open
+      card.addEventListener('click', () => {
+        if (proj.id === this._currentProjectId) return;
+        this._gallerySaveCurrentProject();
+        if (this._galleryLoadProject(proj.id)) {
+          document.getElementById('gallery-modal').classList.remove('visible');
+        }
+      });
+
+      grid.appendChild(card);
+    }
   }
 
   // ============================================================

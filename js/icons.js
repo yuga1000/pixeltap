@@ -411,3 +411,18 @@ G.GG.GG.GG.G
 G....GG....G
 GGGGGGGGGGGG
 `));
+
+export const ICON_GALLERY = renderIcon(p(`
+.GGGGGGGGGG.
+GG.........G
+G..GGGGGG..G
+G..G....G..G
+G..G....G..G
+G..GGGGGG..G
+G..........G
+G..GGGGGG..G
+G..G....G..G
+G..G....G..G
+G..GGGGGG..G
+.GGGGGGGGGG.
+`));

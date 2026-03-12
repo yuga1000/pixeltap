@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="Draw pixel art with your finger. Animation, layers, templates, GIF export.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PixelTap">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-512.png">
   <title>PixelTap</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -42,6 +50,9 @@
         </button>
         <button id="btn-templates" class="icon-btn" title="Templates">
           <img id="icon-templates" alt="Tpl">
+        </button>
+        <button id="btn-gallery" class="icon-btn" title="Gallery">
+          <img id="icon-gallery" alt="Gallery">
         </button>
         <button id="btn-photo" class="icon-btn" title="Import photo as reference">
           <img id="icon-photo" alt="Photo">
@@ -205,6 +216,18 @@
     </div>
   </div>
 
+  <!-- Gallery Modal -->
+  <div id="gallery-modal" class="modal-overlay">
+    <div class="modal gallery-modal-wide">
+      <h3>Gallery</h3>
+      <div class="gallery-actions-top">
+        <button class="modal-btn primary" id="btn-gallery-new">+ New Project</button>
+      </div>
+      <div id="gallery-grid" class="gallery-grid"></div>
+      <button class="modal-btn secondary full-width" id="btn-close-gallery">Cancel</button>
+    </div>
+  </div>
+
   <!-- Shop Modal -->
   <div id="shop-modal" class="modal-overlay">
     <div class="modal">
@@ -215,5 +238,10 @@
   </div>
 
   <script type="module" src="js/main.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
 </body>
 </html>
