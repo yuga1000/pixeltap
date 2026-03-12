@@ -128,6 +128,7 @@ export class PixelCanvas {
     // Reference image (photo behind pixels for tracing)
     this.referenceImage = null;
     this.referenceOpacity = 0.3;
+    this.referenceScale = 1;
 
     // View
     this.zoom = 1;
@@ -366,18 +367,17 @@ export class PixelCanvas {
       // Fit image to canvas area preserving aspect ratio
       const imgRatio = this.referenceImage.width / this.referenceImage.height;
       const canvasRatio = canvasW / canvasH;
+      const scale = this.referenceScale || 1;
       let drawW, drawH, drawX, drawY;
       if (imgRatio > canvasRatio) {
-        drawW = canvasW;
-        drawH = canvasW / imgRatio;
-        drawX = startX;
-        drawY = startY + (canvasH - drawH) / 2;
+        drawW = canvasW * scale;
+        drawH = (canvasW / imgRatio) * scale;
       } else {
-        drawH = canvasH;
-        drawW = canvasH * imgRatio;
-        drawX = startX + (canvasW - drawW) / 2;
-        drawY = startY;
+        drawH = canvasH * scale;
+        drawW = (canvasH * imgRatio) * scale;
       }
+      drawX = startX + (canvasW - drawW) / 2;
+      drawY = startY + (canvasH - drawH) / 2;
       ctx.imageSmoothingEnabled = true;
       ctx.drawImage(this.referenceImage, drawX, drawY, drawW, drawH);
       ctx.restore();

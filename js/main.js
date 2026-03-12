@@ -1422,6 +1422,29 @@ class PixelPaintApp {
       this.pixelCanvas.render();
     });
 
+    // Scale slider
+    const scaleLabel = document.createElement('span');
+    scaleLabel.style.cssText = 'font-size:8px;font-weight:bold;color:rgba(0,180,255,0.8);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;font-family:var(--font);margin-left:4px;';
+    scaleLabel.textContent = 'SIZE';
+
+    const scaleSlider = document.createElement('input');
+    scaleSlider.type = 'range';
+    scaleSlider.min = '0.2';
+    scaleSlider.max = '3';
+    scaleSlider.step = '0.1';
+    scaleSlider.value = String(this.pixelCanvas.referenceScale || 1);
+    scaleSlider.style.cssText = 'width:50px;height:3px;-webkit-appearance:none;appearance:none;background:#2a2a2a;outline:none;';
+
+    const scaleVal = document.createElement('span');
+    scaleVal.style.cssText = 'font-size:9px;color:#00d4ff;font-weight:bold;min-width:28px;text-align:right;font-family:var(--font);';
+    scaleVal.textContent = Math.round((this.pixelCanvas.referenceScale || 1) * 100) + '%';
+
+    scaleSlider.addEventListener('input', () => {
+      this.pixelCanvas.referenceScale = parseFloat(scaleSlider.value);
+      scaleVal.textContent = Math.round(scaleSlider.value * 100) + '%';
+      this.pixelCanvas.render();
+    });
+
     const removeBtn = document.createElement('button');
     removeBtn.style.cssText = 'padding:2px 5px;border:1px solid #2a2a2a;background:#161616;color:#ff3333;font-family:var(--font);font-size:9px;cursor:pointer;font-weight:bold;';
     removeBtn.textContent = 'X';
@@ -1434,6 +1457,9 @@ class PixelPaintApp {
     bar.appendChild(label);
     bar.appendChild(slider);
     bar.appendChild(valLabel);
+    bar.appendChild(scaleLabel);
+    bar.appendChild(scaleSlider);
+    bar.appendChild(scaleVal);
     bar.appendChild(removeBtn);
 
     // Insert before onion-bar
@@ -2195,6 +2221,11 @@ class PixelPaintApp {
 
   _onTouchStart(e) {
     e.preventDefault();
+    // Close layers panel on canvas tap
+    const layersPanel = document.getElementById('layers-panel');
+    if (layersPanel?.classList.contains('open')) {
+      layersPanel.classList.remove('open');
+    }
     if (e.touches.length === 2) {
       this._startPinch(e);
       this.isDrawing = false;
