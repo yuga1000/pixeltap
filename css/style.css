@@ -213,6 +213,24 @@ html, body {
 }
 .pro-buy-btn:active { background: rgba(255, 170, 0, 0.4); }
 
+.promo-section { margin-top: 12px; }
+.promo-divider { text-align: center; font-size: 10px; color: var(--text-secondary); margin-bottom: 8px; }
+.promo-row { display: flex; gap: 4px; }
+.promo-input {
+  flex: 1; padding: 8px; border: 1px solid var(--border); background: var(--bg-primary);
+  color: var(--text-primary); font-family: var(--font); font-size: 12px;
+  text-transform: uppercase; letter-spacing: 1px; outline: none; text-align: center;
+}
+.promo-input:focus { border-color: var(--accent); }
+.promo-btn {
+  padding: 8px 14px; border: 1px solid var(--accent); background: var(--accent-dim);
+  color: var(--accent); font-family: var(--font); font-size: 12px; font-weight: bold; cursor: pointer;
+}
+.promo-btn:active { background: var(--accent); color: var(--bg-primary); }
+.promo-msg { font-size: 10px; margin-top: 4px; text-align: center; min-height: 14px; }
+.promo-msg.success { color: var(--accent); }
+.promo-msg.error { color: var(--error); }
+
 /* ===== Canvas ===== */
 #canvas-container {
   flex: 1;

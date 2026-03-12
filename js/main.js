@@ -222,11 +222,14 @@ class PixelPaintApp {
   }
 
   _applyProState() {
-    // Update UI to reflect PRO status
     const shopBtn = document.getElementById('btn-shop');
-    if (shopBtn && this.isPro) {
-      shopBtn.textContent = 'PRO ✓';
-      shopBtn.classList.add('pro-active');
+    if (shopBtn) {
+      if (this.isPro) {
+        // Hide PRO button entirely — everything is unlocked
+        shopBtn.style.display = 'none';
+      } else {
+        shopBtn.style.display = '';
+      }
     }
 
     // Show/hide lock indicators
@@ -783,8 +786,49 @@ class PixelPaintApp {
             <div>GIF & sprite sheet export</div>
           </div>
           <button class="pro-buy-btn" id="btn-buy-pro">50 Stars</button>
+          <div class="promo-section">
+            <div class="promo-divider">or</div>
+            <div class="promo-row">
+              <input type="text" id="promo-input" class="promo-input" placeholder="Promo code" maxlength="10" autocomplete="off" autocapitalize="characters">
+              <button class="promo-btn" id="btn-redeem">OK</button>
+            </div>
+            <div class="promo-msg" id="promo-msg"></div>
+          </div>
         </div>
       `;
+
+      // Redeem promo code
+      document.getElementById('btn-redeem').addEventListener('click', async () => {
+        const input = document.getElementById('promo-input');
+        const msg = document.getElementById('promo-msg');
+        const code = input.value.trim();
+        if (!code) return;
+
+        const userId = this.tg?.initDataUnsafe?.user?.id || 'unknown';
+        msg.textContent = '...';
+        msg.className = 'promo-msg';
+
+        try {
+          const res = await fetch(`${BOT_API}/api/redeem`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, userId }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            msg.textContent = 'PRO unlocked!';
+            msg.className = 'promo-msg success';
+            this._unlockPro();
+            setTimeout(() => shopModal.classList.remove('visible'), 800);
+          } else {
+            msg.textContent = data.error || 'Invalid code';
+            msg.className = 'promo-msg error';
+          }
+        } catch (e) {
+          msg.textContent = 'Network error';
+          msg.className = 'promo-msg error';
+        }
+      });
 
       document.getElementById('btn-buy-pro').addEventListener('click', async (e) => {
         const btn = e.target;
