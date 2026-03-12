@@ -153,16 +153,17 @@ html, body {
 
 /* Shop / PRO button */
 .shop-btn {
-  height: 28px;
-  padding: 0 8px;
+  height: 24px;
+  padding: 0 5px;
   border: 1px solid var(--warning);
   background: rgba(255, 170, 0, 0.15);
   color: var(--warning);
   font-family: var(--font);
-  font-size: 10px;
+  font-size: 8px;
   font-weight: bold;
   cursor: pointer;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 .shop-btn:hover { background: rgba(255, 170, 0, 0.3); }
 .shop-btn:active { background: rgba(255, 170, 0, 0.4); }
