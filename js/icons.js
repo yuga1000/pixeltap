@@ -396,3 +396,18 @@ GD.........G
 G..........G
 GGGGGGGGGGGG
 `));
+
+export const ICON_TEMPLATES = renderIcon(p(`
+GGGGGGGGGGGG
+G....GG....G
+G.GG.GG.GG.G
+G.GG.GG.GG.G
+G....GG....G
+GGGGGGGGGGGG
+GGGGGGGGGGGG
+G....GG....G
+G.GG.GG.GG.G
+G.GG.GG.GG.G
+G....GG....G
+GGGGGGGGGGGG
+`));

@@ -231,6 +231,56 @@ html, body {
 .promo-msg.success { color: var(--accent); }
 .promo-msg.error { color: var(--error); }
 
+/* ===== Template Library ===== */
+.template-modal-wide { max-width: 360px; }
+
+.template-tabs {
+  display: flex; gap: 2px; margin-bottom: 10px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.template-tabs::-webkit-scrollbar { display: none; }
+
+.template-tab {
+  padding: 4px 10px; border: 1px solid var(--border); background: var(--bg-primary);
+  color: var(--text-secondary); font-family: var(--font); font-size: 9px;
+  font-weight: bold; cursor: pointer; text-transform: uppercase;
+  letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0;
+}
+.template-tab:hover { border-color: var(--accent); color: var(--accent); }
+.template-tab.active {
+  background: var(--accent-dim); color: var(--accent); border-color: var(--accent);
+}
+
+.template-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  max-height: 50vh; overflow-y: auto; padding: 2px;
+  scrollbar-width: thin; scrollbar-color: var(--border) var(--bg-secondary);
+}
+
+.template-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px; border: 1px solid var(--border); background: var(--bg-primary);
+  cursor: pointer;
+}
+.template-card:hover { border-color: var(--accent); }
+.template-card:active { background: var(--accent-dim); }
+
+.template-card canvas {
+  width: 64px; height: 64px;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  background: #1a1a1a; border: 1px solid var(--border);
+}
+
+.template-card-name {
+  font-size: 8px; font-weight: bold; color: var(--text-primary);
+  text-transform: uppercase; letter-spacing: 0.5px; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+
+.template-card .pro-badge {
+  font-size: 7px; color: var(--warning); font-weight: bold;
+}
+
 /* ===== Canvas ===== */
 #canvas-container {
   flex: 1;

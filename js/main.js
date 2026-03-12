@@ -13,8 +13,9 @@ import {
   ICON_UNDO, ICON_REDO, ICON_GRID, ICON_LAYERS,
   ICON_CLEAR, ICON_EXPORT, ICON_ONION, ICON_PLAY, ICON_STOP,
   ICON_SYM_OFF, ICON_SYM_V, ICON_SYM_H, ICON_SYM_BOTH,
-  ICON_PHOTO,
+  ICON_PHOTO, ICON_TEMPLATES,
 } from './icons.js';
+import { TEMPLATE_CATEGORIES, TEMPLATES, parseTemplate, renderTemplatePreview } from './templates.js';
 
 // --- Default palette (Sweetie 16 + basics) ---
 const DEFAULT_PALETTE = [
@@ -255,6 +256,7 @@ class PixelPaintApp {
     set('icon-layers', ICON_LAYERS);
     set('icon-clear', ICON_CLEAR);
     set('icon-export', ICON_EXPORT);
+    set('icon-templates', ICON_TEMPLATES);
 
     // Bottom bar tools
     set('icon-tool-pencil', ICON_PENCIL);
@@ -747,6 +749,9 @@ class PixelPaintApp {
 
     // Shop / PRO button
     this._setupShop();
+
+    // Template library
+    this._setupTemplateModal();
   }
 
   // ============================================================
@@ -868,6 +873,119 @@ class PixelPaintApp {
     shopModal.addEventListener('click', (e) => {
       if (e.target === shopModal) shopModal.classList.remove('visible');
     });
+  }
+
+  // ============================================================
+  // TEMPLATE LIBRARY
+  // ============================================================
+  _setupTemplateModal() {
+    const modal = document.getElementById('template-modal');
+    const closeBtn = document.getElementById('btn-close-templates');
+    const openBtn = document.getElementById('btn-templates');
+    if (!modal || !openBtn) return;
+
+    openBtn.addEventListener('click', () => {
+      this._renderTemplateModal('all');
+      modal.classList.add('visible');
+    });
+
+    closeBtn.addEventListener('click', () => modal.classList.remove('visible'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('visible');
+    });
+  }
+
+  _renderTemplateModal(activeCategory) {
+    const tabsContainer = document.getElementById('template-categories');
+    const grid = document.getElementById('template-grid');
+    tabsContainer.innerHTML = '';
+    grid.innerHTML = '';
+
+    // Category tabs
+    for (const cat of TEMPLATE_CATEGORIES) {
+      if (cat.pro && !this.isPro) continue;
+      const tab = document.createElement('button');
+      tab.className = `template-tab${cat.id === activeCategory ? ' active' : ''}`;
+      tab.textContent = cat.name;
+      tab.addEventListener('click', () => this._renderTemplateModal(cat.id));
+      tabsContainer.appendChild(tab);
+    }
+
+    // Template cards
+    const filtered = activeCategory === 'all'
+      ? TEMPLATES
+      : TEMPLATES.filter(t => t.category === activeCategory);
+
+    for (const template of filtered) {
+      const card = document.createElement('div');
+      card.className = 'template-card';
+
+      const preview = renderTemplatePreview(template, 64);
+      card.appendChild(preview);
+
+      const name = document.createElement('div');
+      name.className = 'template-card-name';
+      name.textContent = template.name;
+      card.appendChild(name);
+
+      if (template.pro && !this.isPro) {
+        const badge = document.createElement('div');
+        badge.className = 'pro-badge';
+        badge.textContent = 'PRO';
+        card.appendChild(badge);
+      }
+
+      card.addEventListener('click', () => {
+        if (template.pro && !this._requirePro('PRO Templates')) return;
+        this._loadTemplate(template);
+        document.getElementById('template-modal').classList.remove('visible');
+      });
+
+      grid.appendChild(card);
+    }
+  }
+
+  _loadTemplate(template) {
+    const { pixels, width, height } = parseTemplate(template);
+
+    // Resize canvas if needed
+    if (width !== this.pixelCanvas.gridWidth || height !== this.pixelCanvas.gridHeight) {
+      if (confirm(`Template is ${width}x${height}. Resize canvas?\n\nOK = resize & load\nCancel = load centered`)) {
+        this.pixelCanvas.setGridSize(width, height);
+        this._syncGridSizeUI();
+        this.animFrames = [this.pixelCanvas.getSnapshot()];
+        this.currentFrameIndex = 0;
+        this._refreshTimeline();
+      }
+    }
+
+    // Load onto new layer if canvas has content
+    const isEmpty = this.pixelCanvas.activeLayer.pixels.every(row => row.every(p => p === null));
+    if (!isEmpty && this.pixelCanvas.layers.length < 20) {
+      this.pixelCanvas.addLayer('Tpl: ' + template.name);
+    }
+
+    const layer = this.pixelCanvas.activeLayer;
+    const offsetX = Math.max(0, Math.floor((this.pixelCanvas.gridWidth - width) / 2));
+    const offsetY = Math.max(0, Math.floor((this.pixelCanvas.gridHeight - height) / 2));
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const color = pixels[y][x];
+        if (color !== null) {
+          const tx = x + offsetX;
+          const ty = y + offsetY;
+          if (tx < this.pixelCanvas.gridWidth && ty < this.pixelCanvas.gridHeight) {
+            layer.pixels[ty][tx] = color;
+          }
+        }
+      }
+    }
+
+    this.pixelCanvas.render();
+    this._saveState();
+    this._refreshLayersList();
+    this.pixelCanvas.fitToScreen();
   }
 
   // ============================================================
