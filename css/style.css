@@ -1128,23 +1128,24 @@ html, body {
   font-size: 10px;
 }
 
-#onion-bar input[type="number"] {
-  width: 28px;
-  height: 18px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--accent);
-  font-family: var(--font);
-  font-size: 10px;
-  text-align: center;
-  font-weight: bold;
-  outline: none;
-  -moz-appearance: textfield;
+.onion-count-btns {
+  display: flex;
+  gap: 2px;
 }
 
-#onion-bar input[type="number"]:focus { border-color: var(--accent); }
-#onion-bar input::-webkit-outer-spin-button,
-#onion-bar input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.onion-count-btn {
+  width: 20px;
+  height: 18px;
+  font-size: 9px;
+  padding: 0;
+  text-align: center;
+}
+
+.onion-count-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
 
 .sm-btn.onion-dir {
   font-size: 8px;

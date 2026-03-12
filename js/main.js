@@ -1576,16 +1576,24 @@ class PixelPaintApp {
   }
 
   _setupOnionSettings() {
-    // Frame count
-    const countInput = document.getElementById('onion-count');
-    if (countInput) {
-      countInput.value = this.pixelCanvas.onionCount;
-      countInput.addEventListener('change', (e) => {
-        this.pixelCanvas.onionCount = Math.max(1, Math.min(5, parseInt(e.target.value) || 2));
-        e.target.value = this.pixelCanvas.onionCount;
-        this._updateOnionSkin();
-        this.pixelCanvas.render();
-      });
+    // Frame count — tap buttons instead of number input
+    const countContainer = document.getElementById('onion-count-btns');
+    if (countContainer) {
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'sm-btn onion-count-btn' + (i === this.pixelCanvas.onionCount ? ' active' : '');
+        btn.textContent = i;
+        btn.dataset.count = i;
+        btn.addEventListener('click', () => {
+          this.pixelCanvas.onionCount = i;
+          countContainer.querySelectorAll('.onion-count-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.count) === i);
+          });
+          this._updateOnionSkin();
+          this.pixelCanvas.render();
+        });
+        countContainer.appendChild(btn);
+      }
     }
 
     // Direction buttons
