@@ -105,6 +105,9 @@ class PixelPaintApp {
   // INIT
   // ============================================================
   _init() {
+    // Telegram Mini App integration
+    this._initTelegram();
+
     const canvasEl = document.getElementById('pixel-canvas');
     this.pixelCanvas = new PixelCanvas(canvasEl);
     this.history = new History(50);
@@ -151,6 +154,35 @@ class PixelPaintApp {
     }
     this._refreshTimeline();
     this._updateOnionSkin();
+  }
+
+  // ============================================================
+  // TELEGRAM MINI APP
+  // ============================================================
+  _initTelegram() {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return; // Not running inside Telegram
+
+    this.tg = tg;
+    tg.ready();
+    tg.expand();     // Fullscreen
+
+    // Disable vertical swipe to close (so drawing works)
+    if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+
+    // Apply Telegram safe areas to CSS
+    const safeTop = tg.safeAreaInset?.top || 0;
+    const safeBottom = tg.safeAreaInset?.bottom || 0;
+    if (safeTop > 0) {
+      document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
+    }
+    if (safeBottom > 0) {
+      document.documentElement.style.setProperty('--safe-bottom', safeBottom + 'px');
+    }
+
+    // Set Telegram header color to match our dark theme
+    if (tg.setHeaderColor) tg.setHeaderColor('#0a0a0a');
+    if (tg.setBackgroundColor) tg.setBackgroundColor('#0a0a0a');
   }
 
   // ============================================================

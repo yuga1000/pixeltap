@@ -29,6 +29,7 @@
   --timeline-height: 44px;
   --bottom-bar-height: 56px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tg-safe-top: 0px;
   --font: 'Menlo', 'Consolas', 'Courier New', monospace;
 }
 
@@ -69,6 +70,7 @@ html, body {
   justify-content: space-between;
   height: var(--toolbar-height);
   padding: 0 4px;
+  padding-top: var(--tg-safe-top);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
