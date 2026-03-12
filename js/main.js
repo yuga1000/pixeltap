@@ -98,6 +98,9 @@ class PixelPaintApp {
     this._saveTimeout = null;
     this._zoomTimeout = null;
 
+    // PRO status
+    this.isPro = localStorage.getItem('pixeltap-pro') === '1';
+
     this._init();
   }
 
@@ -154,6 +157,9 @@ class PixelPaintApp {
     }
     this._refreshTimeline();
     this._updateOnionSkin();
+
+    // Apply PRO state to UI
+    this._applyProState();
   }
 
   // ============================================================
@@ -183,6 +189,50 @@ class PixelPaintApp {
     // Set Telegram header color to match our dark theme
     if (tg.setHeaderColor) tg.setHeaderColor('#0a0a0a');
     if (tg.setBackgroundColor) tg.setBackgroundColor('#0a0a0a');
+  }
+
+  // ============================================================
+  // PRO FEATURE GATING
+  // ============================================================
+  _requirePro(featureName) {
+    if (this.isPro) return true;
+    this._showProPrompt(featureName);
+    return false;
+  }
+
+  _showProPrompt(featureName) {
+    const msg = featureName
+      ? `"${featureName}" is a PRO feature.\nUnlock PixelTap Pro for 50 Stars to get:\n• Animation & timeline\n• Up to 20 layers\n• Canvas up to 256×256\n• Onion skin\n• Symmetry\n• GIF & sprite sheet export`
+      : 'This is a PRO feature. Tap PRO to unlock!';
+
+    if (this.tg) {
+      // Inside Telegram — offer to open shop
+      if (confirm(msg + '\n\nOpen shop?')) {
+        document.getElementById('btn-shop')?.click();
+      }
+    } else {
+      alert(msg);
+    }
+  }
+
+  _unlockPro() {
+    this.isPro = true;
+    localStorage.setItem('pixeltap-pro', '1');
+    this._applyProState();
+  }
+
+  _applyProState() {
+    // Update UI to reflect PRO status
+    const shopBtn = document.getElementById('btn-shop');
+    if (shopBtn && this.isPro) {
+      shopBtn.textContent = 'PRO ✓';
+      shopBtn.classList.add('pro-active');
+    }
+
+    // Show/hide lock indicators
+    document.querySelectorAll('.pro-lock').forEach(el => {
+      el.style.display = this.isPro ? 'none' : '';
+    });
   }
 
   // ============================================================
@@ -530,6 +580,7 @@ class PixelPaintApp {
     };
 
     btn.addEventListener('click', () => {
+      if (!this._requirePro('Symmetry')) return;
       const currentIdx = modes.indexOf(this.pixelCanvas.symmetryMode);
       const nextIdx = (currentIdx + 1) % modes.length;
       this.pixelCanvas.symmetryMode = modes[nextIdx];
@@ -712,65 +763,58 @@ class PixelPaintApp {
       return;
     }
 
-    shopBtn.addEventListener('click', async () => {
+    shopBtn.addEventListener('click', () => {
+      if (this.isPro) {
+        // Already unlocked — no need to show shop
+        return;
+      }
+
       shopModal.classList.add('visible');
       const container = document.getElementById('shop-items');
-      container.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:20px">Loading...</div>';
+      container.innerHTML = `
+        <div class="pro-promo">
+          <div class="pro-promo-title">PixelTap Pro</div>
+          <div class="pro-promo-features">
+            <div>Animation & timeline</div>
+            <div>Up to 20 layers</div>
+            <div>Canvas up to 256×256</div>
+            <div>Onion skin</div>
+            <div>Symmetry drawing</div>
+            <div>GIF & sprite sheet export</div>
+          </div>
+          <button class="pro-buy-btn" id="btn-buy-pro">50 Stars</button>
+        </div>
+      `;
 
-      try {
-        const res = await fetch(`${BOT_API}/api/products`);
-        const data = await res.json();
-        if (!data.ok) throw new Error('Failed to load');
+      document.getElementById('btn-buy-pro').addEventListener('click', async (e) => {
+        const btn = e.target;
+        const userId = this.tg.initDataUnsafe?.user?.id;
+        btn.textContent = '...';
 
-        container.innerHTML = '';
-        for (const [id, product] of Object.entries(data.products)) {
-          const item = document.createElement('div');
-          item.className = 'shop-item';
-          item.innerHTML = `
-            <div class="shop-item-info">
-              <div class="shop-item-title">${product.title}</div>
-              <div class="shop-item-desc">${product.description}</div>
-            </div>
-            <button class="shop-item-buy" data-product="${id}">${product.price} Stars</button>
-          `;
-          container.appendChild(item);
-        }
-
-        // Buy buttons
-        container.querySelectorAll('.shop-item-buy').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const productId = btn.dataset.product;
-            const userId = this.tg.initDataUnsafe?.user?.id;
-            btn.textContent = '...';
-
-            try {
-              const res = await fetch(`${BOT_API}/api/invoice`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId, userId }),
-              });
-              const data = await res.json();
-              if (data.ok && data.invoiceLink) {
-                this.tg.openInvoice(data.invoiceLink, (status) => {
-                  if (status === 'paid') {
-                    btn.textContent = 'Unlocked!';
-                    btn.style.borderColor = 'var(--accent)';
-                    btn.style.color = 'var(--accent)';
-                  } else {
-                    btn.textContent = btn.dataset.product === 'pro_pack' ? '50 Stars' :
-                                     btn.dataset.product === 'brush_pack' ? '25 Stars' : '15 Stars';
-                  }
-                });
-              }
-            } catch (e) {
-              console.error('Invoice error:', e);
-              btn.textContent = 'Error';
-            }
+        try {
+          const res = await fetch(`${BOT_API}/api/invoice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: 'pro_pack', userId }),
           });
-        });
-      } catch (e) {
-        container.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px">Failed to load shop</div>';
-      }
+          const data = await res.json();
+          if (data.ok && data.invoiceLink) {
+            this.tg.openInvoice(data.invoiceLink, (status) => {
+              if (status === 'paid') {
+                this._unlockPro();
+                shopModal.classList.remove('visible');
+              } else {
+                btn.textContent = '50 Stars';
+              }
+            });
+          } else {
+            btn.textContent = 'Error';
+          }
+        } catch (e) {
+          console.error('Invoice error:', e);
+          btn.textContent = 'Error';
+        }
+      });
     });
 
     closeBtn.addEventListener('click', () => {
@@ -899,11 +943,12 @@ class PixelPaintApp {
     buildPresets(document.getElementById('presets-wide'), GRID_PRESETS.wide);
 
     document.getElementById('btn-apply-custom-size').addEventListener('click', () => {
+      const maxSize = this.isPro ? 256 : 64;
       const w = parseInt(document.getElementById('custom-width').value) || 32;
       const h = parseInt(document.getElementById('custom-height').value) || 32;
       this._applyGridSize(
-        Math.max(2, Math.min(256, w)),
-        Math.max(2, Math.min(256, h))
+        Math.max(2, Math.min(maxSize, w)),
+        Math.max(2, Math.min(maxSize, h))
       );
     });
 
@@ -919,6 +964,11 @@ class PixelPaintApp {
   _applyGridSize(w, h) {
     if (w === this.pixelCanvas.gridWidth && h === this.pixelCanvas.gridHeight) {
       document.getElementById('grid-size-modal').classList.remove('visible');
+      return;
+    }
+
+    if (!this.isPro && (w > 64 || h > 64)) {
+      this._requirePro('Canvas > 64×64');
       return;
     }
 
@@ -981,6 +1031,7 @@ class PixelPaintApp {
   // ONION SKIN SETTINGS
   // ============================================================
   _toggleOnionSkin() {
+    if (!this.pixelCanvas.onionSkin && !this._requirePro('Onion Skin')) return;
     this.pixelCanvas.onionSkin = !this.pixelCanvas.onionSkin;
     this._syncOnionUI();
     this._updateOnionSkin();
@@ -1045,6 +1096,10 @@ class PixelPaintApp {
   // ============================================================
   _setupLayersPanel() {
     document.getElementById('btn-add-layer').addEventListener('click', () => {
+      if (!this.isPro && this.pixelCanvas.layers.length >= 1) {
+        this._requirePro('Layers');
+        return;
+      }
       const layer = this.pixelCanvas.addLayer();
       if (layer) {
         this._saveState();
@@ -1069,6 +1124,10 @@ class PixelPaintApp {
     });
 
     document.getElementById('btn-dup-layer').addEventListener('click', () => {
+      if (!this.isPro && this.pixelCanvas.layers.length >= 1) {
+        this._requirePro('Layers');
+        return;
+      }
       const dup = this.pixelCanvas.duplicateLayer(this.pixelCanvas.activeLayerIndex);
       if (dup) {
         this._saveState();
@@ -1165,6 +1224,7 @@ class PixelPaintApp {
   // ============================================================
   _setupTimeline() {
     document.getElementById('btn-add-frame').addEventListener('click', () => {
+      if (!this._requirePro('Animation')) return;
       this._saveCurrentFrame();
       // New empty frame = copy current layers structure but clear pixels
       const snapshot = this.pixelCanvas.getSnapshot();
@@ -1183,6 +1243,7 @@ class PixelPaintApp {
     });
 
     document.getElementById('btn-dup-frame').addEventListener('click', () => {
+      if (!this._requirePro('Animation')) return;
       this._saveCurrentFrame();
       const copy = JSON.parse(JSON.stringify(this.animFrames[this.currentFrameIndex]));
       this.animFrames.splice(this.currentFrameIndex + 1, 0, copy);
@@ -1218,12 +1279,14 @@ class PixelPaintApp {
     });
 
     document.getElementById('btn-export-gif').addEventListener('click', () => {
+      if (!this._requirePro('GIF Export')) return;
       this._exportGIF();
     });
 
     const sheetBtn = document.getElementById('btn-export-sheet');
     if (sheetBtn) {
       sheetBtn.addEventListener('click', () => {
+        if (!this._requirePro('Sprite Sheet Export')) return;
         this._exportSpriteSheet();
       });
     }

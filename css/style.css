@@ -167,41 +167,51 @@ html, body {
 }
 .shop-btn:hover { background: rgba(255, 170, 0, 0.3); }
 .shop-btn:active { background: rgba(255, 170, 0, 0.4); }
+.shop-btn.pro-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 255, 65, 0.12);
+}
 
-/* Shop items */
-.shop-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px;
-  margin-bottom: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
+/* PRO promo card */
+.pro-promo {
+  text-align: center;
+  padding: 12px 0;
 }
-.shop-item-info { flex: 1; }
-.shop-item-title {
-  font-size: 11px;
+.pro-promo-title {
+  font-size: 16px;
   font-weight: bold;
+  color: var(--warning);
+  margin-bottom: 12px;
+}
+.pro-promo-features {
+  text-align: left;
+  padding: 0 8px;
+  margin-bottom: 16px;
+}
+.pro-promo-features div {
+  font-size: 11px;
   color: var(--text-primary);
-  margin-bottom: 2px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
 }
-.shop-item-desc {
-  font-size: 9px;
-  color: var(--text-secondary);
+.pro-promo-features div::before {
+  content: '★ ';
+  color: var(--warning);
 }
-.shop-item-buy {
-  padding: 6px 12px;
-  border: 1px solid var(--warning);
-  background: rgba(255, 170, 0, 0.15);
+.pro-buy-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--warning);
+  background: rgba(255, 170, 0, 0.2);
   color: var(--warning);
   font-family: var(--font);
-  font-size: 10px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  white-space: nowrap;
-  margin-left: 8px;
+  letter-spacing: 1px;
 }
-.shop-item-buy:hover { background: rgba(255, 170, 0, 0.3); }
+.pro-buy-btn:active { background: rgba(255, 170, 0, 0.4); }
 
 /* ===== Canvas ===== */
 #canvas-container {
