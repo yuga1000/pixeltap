@@ -24,10 +24,10 @@
   --danger: #ff3333;
   --warning: #ffaa00;
   --canvas-bg: #111111;
-  --toolbar-height: 40px;
-  --palette-height: 40px;
-  --timeline-height: 44px;
-  --bottom-bar-height: 56px;
+  --toolbar-height: 34px;
+  --palette-height: 34px;
+  --timeline-height: 36px;
+  --bottom-bar-height: 48px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --tg-safe-top: 0px;
   --font: 'Menlo', 'Consolas', 'Courier New', monospace;
@@ -638,9 +638,9 @@ html, body {
 #palette-bar::-webkit-scrollbar { display: none; }
 
 .palette-color {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
   border: 2px solid transparent;
   cursor: pointer;
   transition: transform 0.1s;
