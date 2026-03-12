@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PixelTap</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top toolbar -->
+    <header id="toolbar-top">
+      <div class="toolbar-group">
+        <button id="btn-undo" class="icon-btn" title="Undo" disabled>
+          <img id="icon-undo" alt="Undo">
+        </button>
+        <button id="btn-redo" class="icon-btn" title="Redo" disabled>
+          <img id="icon-redo" alt="Redo">
+        </button>
+      </div>
+      <div class="toolbar-group">
+        <button id="btn-grid-size" class="size-btn" title="Canvas size">
+          <span id="grid-size-label">32x32</span>
+        </button>
+      </div>
+      <div class="toolbar-group">
+        <button id="btn-symmetry" class="icon-btn" title="Symmetry (cycle: off/V/H/both)">
+          <img id="icon-symmetry" alt="Sym">
+        </button>
+        <button id="btn-onion" class="icon-btn" title="Onion Skin">
+          <img id="icon-onion" alt="Onion">
+        </button>
+        <button id="btn-grid" class="icon-btn active" title="Toggle Grid">
+          <img id="icon-grid" alt="Grid">
+        </button>
+        <button id="btn-layers" class="icon-btn" title="Layers">
+          <img id="icon-layers" alt="Layers">
+        </button>
+        <button id="btn-clear" class="icon-btn" title="Clear Canvas">
+          <img id="icon-clear" alt="Clear">
+        </button>
+        <button id="btn-photo" class="icon-btn" title="Import photo as reference">
+          <img id="icon-photo" alt="Photo">
+        </button>
+        <button id="btn-export" class="icon-btn" title="Export PNG">
+          <img id="icon-export" alt="Export">
+        </button>
+      </div>
+    </header>
+
+    <!-- Canvas area -->
+    <main id="canvas-container">
+      <canvas id="pixel-canvas"></canvas>
+    </main>
+
+    <!-- Layers panel (slide from right) -->
+    <div id="layers-panel">
+      <div class="layers-header">
+        <span>Layers</span>
+        <div class="layers-actions">
+          <button id="btn-add-layer" class="sm-btn" title="Add Layer">+</button>
+          <button id="btn-dup-layer" class="sm-btn" title="Duplicate">dup</button>
+          <button id="btn-merge-layer" class="sm-btn" title="Merge Down">mrg</button>
+          <button id="btn-layer-up" class="sm-btn" title="Move Up">^</button>
+          <button id="btn-layer-down" class="sm-btn" title="Move Down">v</button>
+          <button id="btn-delete-layer" class="sm-btn danger" title="Delete">x</button>
+        </div>
+      </div>
+      <div id="layers-list"></div>
+      <div class="layers-opacity">
+        <span>Opacity:</span>
+        <input type="range" id="layer-opacity" min="0" max="1" step="0.05" value="1">
+        <span id="opacity-value">100%</span>
+      </div>
+      <div class="bg-color-row">
+        <span>BG:</span>
+        <input type="color" id="bg-color-picker" value="#ffffff" title="Background color">
+        <button id="btn-bg-toggle" class="sm-btn" title="Toggle background">off</button>
+      </div>
+    </div>
+
+    <!-- Onion skin settings bar (visible when onion is on) -->
+    <div id="onion-bar">
+      <span class="onion-bar-label">ONION</span>
+      <button id="btn-onion-prev" class="sm-btn onion-dir active" title="Previous frames only">< prev</button>
+      <button id="btn-onion-both" class="sm-btn onion-dir" title="Both directions">both</button>
+      <button id="btn-onion-next" class="sm-btn onion-dir" title="Next frames only">next ></button>
+      <span class="onion-bar-sep">|</span>
+      <span class="onion-bar-label">frames:</span>
+      <input type="number" id="onion-count" min="1" max="5" value="2" title="Number of onion frames">
+    </div>
+
+    <!-- Animation timeline -->
+    <div id="timeline-bar">
+      <span id="frame-counter" class="timeline-label">1/1</span>
+      <button id="btn-add-frame" class="timeline-btn" title="New empty frame after current">+</button>
+      <button id="btn-dup-frame" class="timeline-btn" title="Copy current frame">cp</button>
+      <button id="btn-del-frame" class="timeline-btn" title="Delete current frame">x</button>
+      <div id="frames-container"></div>
+      <button id="btn-play" class="timeline-btn" title="Play/Stop (Space)">
+        <img id="icon-play" alt="Play" style="width:12px;height:12px;">
+      </button>
+      <button id="btn-live-draw" class="timeline-btn" title="Live Draw - draw while animation plays">LIVE</button>
+      <input type="number" id="fps-input" min="1" max="30" value="8" title="Frames per second">
+      <span class="timeline-label">fps</span>
+      <button id="btn-export-gif" class="timeline-btn" title="Export animated GIF">GIF</button>
+      <button id="btn-export-sheet" class="timeline-btn" title="Export sprite sheet PNG">SHEET</button>
+    </div>
+
+    <!-- Color palette -->
+    <div id="palette-bar"></div>
+
+    <!-- Bottom toolbar -->
+    <footer id="toolbar-bottom">
+      <button id="btn-brush-size" class="brush-size-btn" title="Brush size (tap to change)">
+        <span id="brush-size-label">1</span>
+        <span class="brush-size-unit">px</span>
+      </button>
+      <button class="tool-btn active" data-tool="pencil" title="Pencil (P)">
+        <img id="icon-tool-pencil" alt="Pen">
+        <span>Pen</span>
+      </button>
+      <button class="tool-btn" data-tool="eraser" title="Eraser (E)">
+        <img id="icon-tool-eraser" alt="Erase">
+        <span>Erase</span>
+      </button>
+      <button class="tool-btn" data-tool="fill" title="Fill (G)">
+        <img id="icon-tool-fill" alt="Fill">
+        <span>Fill</span>
+      </button>
+      <button class="tool-btn" data-tool="eyedropper" title="Pick Color (I)">
+        <img id="icon-tool-eyedropper" alt="Pick">
+        <span>Pick</span>
+      </button>
+      <button class="tool-btn" data-tool="line" title="Line (L)">
+        <img id="icon-tool-line" alt="Line">
+        <span>Line</span>
+      </button>
+      <button class="tool-btn" data-tool="shape" title="Shape (U) - tap again for picker">
+        <img id="icon-tool-shape" alt="Shape">
+        <span>Rect</span>
+      </button>
+      <button class="tool-btn" data-tool="wand" title="Magic Wand (W)">
+        <img id="icon-tool-wand" alt="Wand">
+        <span>Wand</span>
+      </button>
+      <button class="tool-btn" data-tool="select" title="Select & Move (M)">
+        <img id="icon-tool-select" alt="Move">
+        <span>Move</span>
+      </button>
+      <div class="current-color-wrap">
+        <div id="current-color"></div>
+        <input type="color" id="color-picker" value="#000000">
+        <span class="color-label">color</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Grid Size Modal -->
+  <div id="grid-size-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>Canvas Size</h3>
+
+      <div class="preset-section">
+        <div class="preset-label">Square</div>
+        <div class="preset-grid" id="presets-square"></div>
+      </div>
+
+      <div class="preset-section">
+        <div class="preset-label">Phone (9:16)</div>
+        <div class="preset-grid" id="presets-phone"></div>
+      </div>
+
+      <div class="preset-section">
+        <div class="preset-label">Landscape</div>
+        <div class="preset-grid" id="presets-wide"></div>
+      </div>
+
+      <div class="preset-section">
+        <div class="preset-label">Custom (max 256)</div>
+        <div class="custom-size-row">
+          <input type="number" id="custom-width" min="2" max="256" value="32" placeholder="W">
+          <span>x</span>
+          <input type="number" id="custom-height" min="2" max="256" value="32" placeholder="H">
+          <button class="modal-btn primary" id="btn-apply-custom-size">OK</button>
+        </div>
+      </div>
+
+      <button class="modal-btn secondary full-width" id="btn-close-grid-modal">Cancel</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
