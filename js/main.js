@@ -242,6 +242,12 @@ class PixelPaintApp {
     try {
       const cs = window.Telegram?.WebApp?.CloudStorage;
       if (!cs) return;
+      // If already PRO locally — push to cloud (migration for old purchases)
+      if (this.isPro) {
+        cs.setItem('pixeltap-pro', '1');
+        return;
+      }
+      // Otherwise pull from cloud
       cs.getItem('pixeltap-pro', (err, value) => {
         if (!err && value === '1' && !this.isPro) {
           this.isPro = true;
