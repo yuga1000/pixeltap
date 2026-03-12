@@ -151,6 +151,57 @@ html, body {
   background: var(--accent-dim);
 }
 
+/* Shop / PRO button */
+.shop-btn {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--warning);
+  background: rgba(255, 170, 0, 0.15);
+  color: var(--warning);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+.shop-btn:hover { background: rgba(255, 170, 0, 0.3); }
+.shop-btn:active { background: rgba(255, 170, 0, 0.4); }
+
+/* Shop items */
+.shop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+.shop-item-info { flex: 1; }
+.shop-item-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.shop-item-desc {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+.shop-item-buy {
+  padding: 6px 12px;
+  border: 1px solid var(--warning);
+  background: rgba(255, 170, 0, 0.15);
+  color: var(--warning);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.shop-item-buy:hover { background: rgba(255, 170, 0, 0.3); }
+
 /* ===== Canvas ===== */
 #canvas-container {
   flex: 1;

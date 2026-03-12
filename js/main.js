@@ -690,6 +690,96 @@ class PixelPaintApp {
     if (photoBtn) {
       photoBtn.addEventListener('click', () => this._importPhoto());
     }
+
+    // Shop / PRO button
+    this._setupShop();
+  }
+
+  // ============================================================
+  // SHOP / STARS PAYMENTS
+  // ============================================================
+  _setupShop() {
+    const BOT_API = 'https://pixeltap-bot-production.up.railway.app';
+
+    const shopBtn = document.getElementById('btn-shop');
+    const shopModal = document.getElementById('shop-modal');
+    const closeBtn = document.getElementById('btn-close-shop');
+    if (!shopBtn || !shopModal) return;
+
+    // Only show shop inside Telegram
+    if (!this.tg) {
+      shopBtn.style.display = 'none';
+      return;
+    }
+
+    shopBtn.addEventListener('click', async () => {
+      shopModal.classList.add('visible');
+      const container = document.getElementById('shop-items');
+      container.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:20px">Loading...</div>';
+
+      try {
+        const res = await fetch(`${BOT_API}/api/products`);
+        const data = await res.json();
+        if (!data.ok) throw new Error('Failed to load');
+
+        container.innerHTML = '';
+        for (const [id, product] of Object.entries(data.products)) {
+          const item = document.createElement('div');
+          item.className = 'shop-item';
+          item.innerHTML = `
+            <div class="shop-item-info">
+              <div class="shop-item-title">${product.title}</div>
+              <div class="shop-item-desc">${product.description}</div>
+            </div>
+            <button class="shop-item-buy" data-product="${id}">${product.price} Stars</button>
+          `;
+          container.appendChild(item);
+        }
+
+        // Buy buttons
+        container.querySelectorAll('.shop-item-buy').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const productId = btn.dataset.product;
+            const userId = this.tg.initDataUnsafe?.user?.id;
+            btn.textContent = '...';
+
+            try {
+              const res = await fetch(`${BOT_API}/api/invoice`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productId, userId }),
+              });
+              const data = await res.json();
+              if (data.ok && data.invoiceLink) {
+                this.tg.openInvoice(data.invoiceLink, (status) => {
+                  if (status === 'paid') {
+                    btn.textContent = 'Unlocked!';
+                    btn.style.borderColor = 'var(--accent)';
+                    btn.style.color = 'var(--accent)';
+                  } else {
+                    btn.textContent = btn.dataset.product === 'pro_pack' ? '50 Stars' :
+                                     btn.dataset.product === 'brush_pack' ? '25 Stars' : '15 Stars';
+                  }
+                });
+              }
+            } catch (e) {
+              console.error('Invoice error:', e);
+              btn.textContent = 'Error';
+            }
+          });
+        });
+      } catch (e) {
+        container.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px">Failed to load shop</div>';
+      }
+    });
+
+    closeBtn.addEventListener('click', () => {
+      shopModal.classList.remove('visible');
+    });
+
+    shopModal.addEventListener('click', (e) => {
+      if (e.target === shopModal) shopModal.classList.remove('visible');
+    });
   }
 
   // ============================================================
