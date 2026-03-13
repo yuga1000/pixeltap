@@ -12,6 +12,17 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icon-512.png">
   <title>PixelTap</title>
+  <script async src="https://tganalytics.xyz/index.js" onload="initTgAnalytics()"></script>
+  <script>
+    function initTgAnalytics() {
+      if (window.telegramAnalytics) {
+        window.telegramAnalytics.init({
+          token: 'eyJhcHBfbmFtZSI6InBpeGVsdGFwIiwiYXBwX3VybCI6Imh0dHBzOi8vdC5tZS95dWdhX2FydCIsImFwcF9kb21haW4iOiJodHRwczovL3l1Z2ExMDAwLmdpdGh1Yi5pby9waXhlbHRhcC8ifQ==!kwKzDfS/xrCbgqPQSRAUYaCGj4xJ1UAWTJPKrP3mNt4=',
+          appName: 'pixeltap',
+        });
+      }
+    }
+  </script>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
