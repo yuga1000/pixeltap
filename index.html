@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="description" content="Draw pixel art with your finger. Animation, layers, templates, GIF export.">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -125,8 +125,9 @@
         <img id="icon-play" alt="Play" style="width:12px;height:12px;">
       </button>
       <button id="btn-live-draw" class="timeline-btn" title="Live Draw - draw while animation plays">LIVE</button>
-      <input type="number" id="fps-input" min="1" max="30" value="8" title="Frames per second">
-      <span class="timeline-label">fps</span>
+      <button id="btn-fps-down" class="timeline-btn" title="Decrease FPS">-</button>
+      <span id="fps-label" class="timeline-label">8fps</span>
+      <button id="btn-fps-up" class="timeline-btn" title="Increase FPS">+</button>
       <button id="btn-export-gif" class="timeline-btn" title="Export animated GIF">GIF</button>
       <button id="btn-export-sheet" class="timeline-btn" title="Export sprite sheet PNG">SHEET</button>
     </div>

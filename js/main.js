@@ -373,7 +373,7 @@ class PixelPaintApp {
         this.animFrames = data.frames;
         this.currentFrameIndex = data.currentFrameIndex || 0;
         this.fps = data.fps || 8;
-        document.getElementById('fps-input').value = this.fps;
+        const fl = document.getElementById('fps-label'); if (fl) fl.textContent = this.fps + 'fps';
       }
     } catch (e) {
       console.warn('Anim load failed:', e);
@@ -1194,7 +1194,7 @@ class PixelPaintApp {
     this.animFrames = [this.pixelCanvas.getSnapshot()];
     this.currentFrameIndex = 0;
     this.fps = 8;
-    document.getElementById('fps-input').value = this.fps;
+    const fl = document.getElementById('fps-label'); if (fl) fl.textContent = this.fps + 'fps';
 
     this.pixelCanvas.render();
     this.pixelCanvas.fitToScreen();
@@ -1235,7 +1235,7 @@ class PixelPaintApp {
           this.animFrames = data.frames;
           this.currentFrameIndex = data.currentFrameIndex || 0;
           this.fps = data.fps || 8;
-          document.getElementById('fps-input').value = this.fps;
+          const fl = document.getElementById('fps-label'); if (fl) fl.textContent = this.fps + 'fps';
         }
       } else {
         this.animFrames = [this.pixelCanvas.getSnapshot()];
@@ -1882,15 +1882,15 @@ class PixelPaintApp {
       this._togglePlay();
     });
 
-    document.getElementById('fps-input').addEventListener('change', (e) => {
-      this.fps = Math.max(1, Math.min(30, parseInt(e.target.value) || 8));
-      e.target.value = this.fps;
-      if (this.isPlaying) {
-        this._stopPlay();
-        this._startPlay();
-      }
+    const fpsLabel = document.getElementById('fps-label');
+    const updateFps = (newFps) => {
+      this.fps = Math.max(1, Math.min(30, newFps));
+      fpsLabel.textContent = this.fps + 'fps';
+      if (this.isPlaying) { this._stopPlay(); this._startPlay(); }
       this._scheduleAutoSave();
-    });
+    };
+    document.getElementById('btn-fps-down').addEventListener('click', () => updateFps(this.fps - 1));
+    document.getElementById('btn-fps-up').addEventListener('click', () => updateFps(this.fps + 1));
 
     document.getElementById('btn-export-gif').addEventListener('click', () => {
       if (!this._requirePro('GIF Export')) return;

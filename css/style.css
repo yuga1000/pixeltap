@@ -751,23 +751,13 @@ html, body {
   text-align: center;
 }
 
-#fps-input {
-  width: 30px;
-  height: 22px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
+#fps-label {
   color: var(--accent);
-  font-family: var(--font);
   font-size: 10px;
-  text-align: center;
   font-weight: bold;
-  outline: none;
-  -moz-appearance: textfield;
+  min-width: 28px;
+  text-align: center;
 }
-
-#fps-input:focus { border-color: var(--accent); }
-#fps-input::-webkit-outer-spin-button,
-#fps-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
 /* ===== Color Palette ===== */
 #palette-bar {
@@ -805,7 +795,7 @@ html, body {
 #toolbar-bottom {
   display: flex;
   align-items: center;
-  height: var(--bottom-bar-height);
+  min-height: var(--bottom-bar-height);
   padding: 2px 2px;
   padding-bottom: calc(2px + var(--safe-bottom));
   background: var(--bg-secondary);
