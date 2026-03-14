@@ -249,30 +249,40 @@ export function ellipsePoints(x0, y0, x1, y1, filled = false) {
     }
   }
 
-  // Build final points with vertical connectivity for outline
+  // Build final points
   const sortedYsFinal = Object.keys(edgeMap).map(Number).sort((a, b) => a - b);
-  for (let i = 0; i < sortedYsFinal.length; i++) {
-    const yi = sortedYsFinal[i];
-    const edge = edgeMap[yi];
-    if (filled) {
+  if (filled) {
+    for (const yi of sortedYsFinal) {
+      const edge = edgeMap[yi];
       for (let xi = edge.min; xi <= edge.max; xi++) points.push({ x: xi, y: yi });
-    } else {
-      points.push({ x: edge.min, y: yi });
-      if (edge.min !== edge.max) points.push({ x: edge.max, y: yi });
-      // Connect to next scanline edges to close gaps
+    }
+  } else {
+    // Outline: trace left edge down, then right edge down, connect with bresenham
+    const seen = new Set();
+    const addPt = (px, py) => {
+      const k = px + ',' + py;
+      if (!seen.has(k)) { seen.add(k); points.push({ x: px, y: py }); }
+    };
+    // Top and bottom horizontal spans
+    if (sortedYsFinal.length > 0) {
+      const topEdge = edgeMap[sortedYsFinal[0]];
+      const botEdge = edgeMap[sortedYsFinal[sortedYsFinal.length - 1]];
+      for (let x = topEdge.min; x <= topEdge.max; x++) addPt(x, sortedYsFinal[0]);
+      for (let x = botEdge.min; x <= botEdge.max; x++) addPt(x, sortedYsFinal[sortedYsFinal.length - 1]);
+    }
+    // Left and right edges with bresenham connections
+    for (let i = 0; i < sortedYsFinal.length; i++) {
+      const yi = sortedYsFinal[i];
+      const edge = edgeMap[yi];
+      addPt(edge.min, yi);
+      addPt(edge.max, yi);
       if (i < sortedYsFinal.length - 1) {
         const nextY = sortedYsFinal[i + 1];
         const nextEdge = edgeMap[nextY];
-        // Connect left edges
-        const lx0 = edge.min, lx1 = nextEdge.min;
-        for (let x = Math.min(lx0, lx1) + 1; x < Math.max(lx0, lx1); x++) {
-          points.push({ x, y: yi });
-        }
-        // Connect right edges
-        const rx0 = edge.max, rx1 = nextEdge.max;
-        for (let x = Math.min(rx0, rx1) + 1; x < Math.max(rx0, rx1); x++) {
-          points.push({ x, y: yi });
-        }
+        // Connect left edges with bresenham
+        for (const p of bresenhamLine(edge.min, yi, nextEdge.min, nextY)) addPt(p.x, p.y);
+        // Connect right edges with bresenham
+        for (const p of bresenhamLine(edge.max, yi, nextEdge.max, nextY)) addPt(p.x, p.y);
       }
     }
   }

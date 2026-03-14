@@ -691,6 +691,20 @@ class PixelPaintApp {
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(bx, by, h.w * size, h.h * size);
     ctx.setLineDash([]);
+
+    // "Tap to move" hint
+    const tw = h.w * size;
+    const th = h.h * size;
+    if (tw > 40 && th > 20) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      const txtW = 60, txtH = 16;
+      ctx.fillRect(bx + (tw - txtW) / 2, by + (th - txtH) / 2, txtW, txtH);
+      ctx.fillStyle = '#39ff14';
+      ctx.font = 'bold 9px var(--font)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('TAP→MOVE', bx + tw / 2, by + th / 2);
+    }
   }
 
   _renderSelectionPreview() {
