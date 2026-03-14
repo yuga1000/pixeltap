@@ -433,15 +433,34 @@ export const Tools = {
     name: 'select',
 
     onStart(app, gx, gy) {
+      // Tap inside floating selection → drag it
       if (app.selection && app._isInsideSelection(gx, gy)) {
         app._selectionDragging = true;
         app._selectionDragStart = { x: gx, y: gy };
         return;
       }
 
+      // Tap inside highlight (not yet cut) → cut and start drag
+      if (app._selectHighlight && app._isInsideHighlight(gx, gy)) {
+        const h = app._selectHighlight;
+        const region = app.pixelCanvas.getRegion(h.x, h.y, h.w, h.h);
+        app.pixelCanvas.clearRegion(h.x, h.y, h.w, h.h);
+        app.selection = { ...region };
+        app._selectHighlight = null;
+        app._selectionDragging = true;
+        app._selectionDragStart = { x: gx, y: gy };
+        app.pixelCanvas.render();
+        app._renderSelectionOverlay();
+        return;
+      }
+
+      // Tap outside — commit any floating selection
       if (app.selection) {
         app._commitSelection();
       }
+
+      // Clear old highlight
+      app._selectHighlight = null;
 
       app._selectStart = { x: gx, y: gy };
       app._selectEnd = { x: gx, y: gy };
@@ -484,11 +503,10 @@ export const Tools = {
         const h = y1 - y0 + 1;
 
         if (w > 0 && h > 0) {
-          const region = app.pixelCanvas.getRegion(x0, y0, w, h);
-          app.pixelCanvas.clearRegion(x0, y0, w, h);
-          app.selection = { ...region };
+          // Just highlight — don't cut yet
+          app._selectHighlight = { x: x0, y: y0, w, h };
           app.pixelCanvas.render();
-          app._renderSelectionOverlay();
+          app._renderHighlightOverlay();
         }
       }
       app._selectStart = null;

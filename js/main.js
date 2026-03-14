@@ -556,9 +556,10 @@ class PixelPaintApp {
     if (selTools.includes(this.currentTool) && !selTools.includes(toolName) && this.selection) {
       this._commitSelection();
     }
-    // Clear wand highlight when switching away
-    if (this._wandHighlight) {
+    // Clear wand highlight and select highlight when switching away
+    if (this._wandHighlight || this._selectHighlight) {
       this._wandHighlight = null;
+      this._selectHighlight = null;
       this.pixelCanvas.render();
     }
     // Cancel in-progress line/shape preview
@@ -657,12 +658,39 @@ class PixelPaintApp {
     return gx >= s.x && gx < s.x + s.w && gy >= s.y && gy < s.y + s.h;
   }
 
+  _isInsideHighlight(gx, gy) {
+    if (!this._selectHighlight) return false;
+    const h = this._selectHighlight;
+    return gx >= h.x && gx < h.x + h.w && gy >= h.y && gy < h.y + h.h;
+  }
+
   _commitSelection() {
     if (!this.selection) return;
     this.pixelCanvas.pasteRegion(this.selection, this.selection.x, this.selection.y);
     this.selection = null;
     this.pixelCanvas.render();
     this._saveState();
+  }
+
+  _renderHighlightOverlay() {
+    if (!this._selectHighlight) return;
+    const ctx = this.pixelCanvas.ctx;
+    const size = this.pixelCanvas.cellSize;
+    const dpr = this.pixelCanvas.dpr;
+    const h = this._selectHighlight;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Dim area outside highlight
+    const bx = this.pixelCanvas.panX + h.x * size;
+    const by = this.pixelCanvas.panY + h.y * size;
+    ctx.fillStyle = 'rgba(57, 255, 20, 0.08)';
+    ctx.fillRect(bx, by, h.w * size, h.h * size);
+
+    ctx.strokeStyle = '#39ff14';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(bx, by, h.w * size, h.h * size);
+    ctx.setLineDash([]);
   }
 
   _renderSelectionPreview() {

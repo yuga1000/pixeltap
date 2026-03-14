@@ -3,7 +3,7 @@
  * Network-first strategy: always tries network, falls back to cache.
  * Bump CACHE_NAME on each deploy to force update.
  */
-const CACHE_NAME = 'pixeltap-v6';
+const CACHE_NAME = 'pixeltap-v7';
 
 const APP_SHELL = [
   '/',
