@@ -216,9 +216,10 @@ export function ellipsePoints(x0, y0, x1, y1, filled = false) {
   };
 
   // Use parametric sampling to avoid gaps
-  // Sample enough points to cover every pixel
-  const steps = Math.max(rx, ry) * 8;
-  for (let i = 0; i <= steps; i++) {
+  // Sample enough points to cover every pixel on the perimeter
+  const perimeter = Math.max(4, Math.ceil(2 * Math.PI * Math.sqrt((rx * rx + ry * ry) / 2)));
+  const steps = Math.max(perimeter * 2, (rx + ry) * 8);
+  for (let i = 0; i < steps; i++) {
     const angle = (2 * Math.PI * i) / steps;
     const ex = Math.round(cx + rx * Math.cos(angle));
     const ey = Math.round(cy + ry * Math.sin(angle));
@@ -248,13 +249,31 @@ export function ellipsePoints(x0, y0, x1, y1, filled = false) {
     }
   }
 
-  for (const [yStr, edge] of Object.entries(edgeMap)) {
-    const yi = parseInt(yStr);
+  // Build final points with vertical connectivity for outline
+  const sortedYsFinal = Object.keys(edgeMap).map(Number).sort((a, b) => a - b);
+  for (let i = 0; i < sortedYsFinal.length; i++) {
+    const yi = sortedYsFinal[i];
+    const edge = edgeMap[yi];
     if (filled) {
       for (let xi = edge.min; xi <= edge.max; xi++) points.push({ x: xi, y: yi });
     } else {
       points.push({ x: edge.min, y: yi });
       if (edge.min !== edge.max) points.push({ x: edge.max, y: yi });
+      // Connect to next scanline edges to close gaps
+      if (i < sortedYsFinal.length - 1) {
+        const nextY = sortedYsFinal[i + 1];
+        const nextEdge = edgeMap[nextY];
+        // Connect left edges
+        const lx0 = edge.min, lx1 = nextEdge.min;
+        for (let x = Math.min(lx0, lx1) + 1; x < Math.max(lx0, lx1); x++) {
+          points.push({ x, y: yi });
+        }
+        // Connect right edges
+        const rx0 = edge.max, rx1 = nextEdge.max;
+        for (let x = Math.min(rx0, rx1) + 1; x < Math.max(rx0, rx1); x++) {
+          points.push({ x, y: yi });
+        }
+      }
     }
   }
   return points;
@@ -586,6 +605,26 @@ export const Tools = {
   line: {
     name: 'line',
 
+    _constrainLine(sx, sy, ex, ey) {
+      // Snap to nearest 45° angle (0, 45, 90, 135, etc.)
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const angle = Math.atan2(dy, dx);
+      const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+      const len = Math.sqrt(dx * dx + dy * dy);
+      return {
+        x: sx + Math.round(len * Math.cos(snapped)),
+        y: sy + Math.round(len * Math.sin(snapped))
+      };
+    },
+
+    _getEnd(app, gx, gy) {
+      if (app._shapeConstrain && app._shapeStart) {
+        return this._constrainLine(app._shapeStart.x, app._shapeStart.y, gx, gy);
+      }
+      return { x: gx, y: gy };
+    },
+
     onStart(app, gx, gy) {
       app._shapeStart = { x: gx, y: gy };
     },
@@ -593,20 +632,23 @@ export const Tools = {
     onMove(app, gx, gy) {
       if (!app._shapeStart) return;
       app._shapeEnd = { x: gx, y: gy };
-      const pts = bresenhamLine(app._shapeStart.x, app._shapeStart.y, gx, gy);
+      const end = this._getEnd(app, gx, gy);
+      const pts = bresenhamLine(app._shapeStart.x, app._shapeStart.y, end.x, end.y);
       app.pixelCanvas.render();
       app.pixelCanvas.renderPreview(pts, app.currentColor);
     },
 
     onEnd(app) {
       if (!app._shapeStart) return;
-      const end = app._shapeEnd || app._shapeStart;
+      const raw = app._shapeEnd || app._shapeStart;
+      const end = this._getEnd(app, raw.x, raw.y);
       const pts = bresenhamLine(app._shapeStart.x, app._shapeStart.y, end.x, end.y);
       for (const p of pts) {
         app.paintBrush(p.x, p.y, app.currentColor);
       }
       app._shapeStart = null;
       app._shapeEnd = null;
+      app._shapeConstrain = false;
       app.pixelCanvas.render();
     }
   },
@@ -617,7 +659,23 @@ export const Tools = {
   shape: {
     name: 'shape',
 
+    _constrainEnd(sx, sy, ex, ey) {
+      // Force square aspect ratio (perfect circle/square)
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const size = Math.max(Math.abs(dx), Math.abs(dy));
+      return {
+        x: sx + size * Math.sign(dx || 1),
+        y: sy + size * Math.sign(dy || 1)
+      };
+    },
+
     _getShapePoints(app, sx, sy, ex, ey) {
+      // Constrain to perfect shape if second finger is held
+      if (app._shapeConstrain) {
+        const c = this._constrainEnd(sx, sy, ex, ey);
+        ex = c.x; ey = c.y;
+      }
       const mode = app.shapeMode || 'rect';
       const filled = app.shapeFilled || false;
       switch (mode) {
@@ -650,6 +708,7 @@ export const Tools = {
       }
       app._shapeStart = null;
       app._shapeEnd = null;
+      app._shapeConstrain = false;
       app.pixelCanvas.render();
     }
   },

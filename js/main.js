@@ -2318,6 +2318,15 @@ class PixelPaintApp {
       layersPanel.classList.remove('open');
     }
     if (e.touches.length === 2) {
+      // If drawing shape/line, second finger = constrain to perfect shape
+      if (this.isDrawing && (this.currentTool === 'shape' || this.currentTool === 'line')) {
+        this._shapeConstrain = true;
+        // Re-render preview with constrain
+        if (this._shapeStart && this._shapeEnd) {
+          this.activeTool.onMove(this, this._shapeEnd.x, this._shapeEnd.y);
+        }
+        return;
+      }
       this._startPinch(e);
       this.isDrawing = false;
       return;
