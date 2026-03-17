@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.yuga1000.twa",
+        "sha256_cert_fingerprints": ["AD:AE:D6:24:76:B9:6F:23:1D:1E:72:56:B4:1F:41:1D:8B:FF:00:D9:6F:DC:19:6D:37:C2:2D:58:17:16:92:AE"]
+      }
+    }]
