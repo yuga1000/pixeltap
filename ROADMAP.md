@@ -14,6 +14,9 @@
 ## v1.1 — Distribution (in progress)
 - [x] FindMini.app submission
 - [x] Android TWA app built (Google Play package ready, 2026-03-15)
+- [x] Telegram Apps Center submission (bot: @Pixeltap_app_bot, analytics: _pixeltap)
+- [x] Fix iOS export (Web Share API + long-press save modal)
+- [x] Fix phantom dots on pinch-zoom (revert partial stroke on two-finger detect)
 - [ ] BotFather media preview (videos/screenshots)
 - [ ] TG channel @pixeltap_app for updates
 - [ ] Posts in Mini Apps / pixel art channels
