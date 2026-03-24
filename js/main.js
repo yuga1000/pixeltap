@@ -2148,12 +2148,97 @@ class PixelPaintApp {
     const blob = encoder.toBlob();
     const url = URL.createObjectURL(blob);
 
-    const link = document.createElement('a');
-    link.download = `pixeltap-${Date.now()}.gif`;
-    link.href = url;
-    link.click();
+    this._saveFile(url, `pixeltap-${Date.now()}.gif`, 'image/gif');
+  }
 
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  // ============================================================
+  // UNIVERSAL FILE SAVE (works on iOS / Telegram WebView)
+  // ============================================================
+  _saveFile(url, filename, mimeType) {
+    // Try native download first (works on desktop & Android)
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // On iOS / Telegram WebView, link.click() often silently fails.
+    // Detect iOS and show a save modal with long-press instruction.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isTgWebView = window.TelegramWebviewProxy || window.Telegram?.WebApp;
+
+    if (isIOS || isTgWebView) {
+      this._showSaveModal(url, filename, mimeType);
+    } else {
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+  }
+
+  _showSaveModal(url, filename, mimeType) {
+    // Remove previous modal if exists
+    document.getElementById('save-modal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'save-modal';
+    modal.style.cssText = `
+      position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:20px;gap:12px;
+    `;
+
+    const isGif = mimeType === 'image/gif';
+
+    modal.innerHTML = `
+      <div style="color:#fff;font-size:14px;text-align:center;margin-bottom:8px;">
+        ${isGif ? 'Long press the image below to save GIF' : 'Long press the image below to save'}
+      </div>
+      <img src="${url}" style="max-width:90%;max-height:60vh;image-rendering:pixelated;
+        border:2px solid #444;border-radius:8px;background:#1a1a2e;" />
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button id="save-modal-share" style="padding:8px 20px;border-radius:6px;border:none;
+          background:#6c5ce7;color:#fff;font-size:14px;cursor:pointer;">
+          Share
+        </button>
+        <button id="save-modal-close" style="padding:8px 20px;border-radius:6px;border:none;
+          background:#555;color:#fff;font-size:14px;cursor:pointer;">
+          Close
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('save-modal-close').addEventListener('click', () => {
+      modal.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Try Web Share API (works great on iOS)
+    document.getElementById('save-modal-share').addEventListener('click', async () => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const file = new File([blob], filename, { type: mimeType });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          modal.remove();
+          URL.revokeObjectURL(url);
+          return;
+        }
+      } catch (e) { /* share cancelled or failed */ }
+
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+        URL.revokeObjectURL(url);
+      }
+    });
   }
 
   // ============================================================
@@ -2192,11 +2277,7 @@ class PixelPaintApp {
 
     canvas.toBlob((blob) => {
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `pixeltap-sheet-${cols}x${rows}-${Date.now()}.png`;
-      link.href = url;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      this._saveFile(url, `pixeltap-sheet-${cols}x${rows}-${Date.now()}.png`, 'image/png');
     }, 'image/png');
   }
 
@@ -2288,10 +2369,7 @@ class PixelPaintApp {
     alphaCheckbox.addEventListener('change', refreshPreview);
 
     document.getElementById('btn-download').addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = `pixeltap-${Date.now()}.png`;
-      link.href = exportImg.src;
-      link.click();
+      this._saveFile(exportImg.src, `pixeltap-${Date.now()}.png`, 'image/png');
     });
 
     gifBtn.addEventListener('click', () => {
@@ -2340,6 +2418,16 @@ class PixelPaintApp {
           this.activeTool.onMove(this, this._shapeEnd.x, this._shapeEnd.y);
         }
         return;
+      }
+      // If a pixel was just drawn (single touch started drawing), revert it
+      if (this.isDrawing) {
+        this.activeTool.onEnd(this);
+        // Restore canvas to last saved state (before this stroke)
+        const snap = this.history.current();
+        if (snap) {
+          this.pixelCanvas.loadSnapshot(snap);
+          this.pixelCanvas.render();
+        }
       }
       this._startPinch(e);
       this.isDrawing = false;
