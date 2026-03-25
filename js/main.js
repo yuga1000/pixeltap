@@ -2154,30 +2154,89 @@ class PixelPaintApp {
   // ============================================================
   // UNIVERSAL FILE SAVE (works on iOS / Telegram WebView)
   // ============================================================
-  _saveFile(url, filename, mimeType) {
-    // Try native download first (works on desktop & Android)
+  async _saveFile(url, filename, mimeType) {
+    const tg = window.Telegram?.WebApp;
+    const isTgWebView = !!tg;
+
+    // Inside Telegram: send file to user via bot
+    if (isTgWebView) {
+      await this._sendViaBot(url, filename, mimeType);
+      return;
+    }
+
+    // Desktop / outside Telegram: standard download
     const link = document.createElement('a');
     link.download = filename;
     link.href = url;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    // On iOS / Telegram WebView, link.click() often silently fails.
-    // Detect iOS and show a save modal with long-press instruction.
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isTgWebView = window.TelegramWebviewProxy || window.Telegram?.WebApp;
-
-    if (isIOS || isTgWebView) {
-      this._showSaveModal(url, filename, mimeType);
-    } else {
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-    }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
-  _showSaveModal(url, filename, mimeType) {
-    // Remove previous modal if exists
+  async _sendViaBot(blobUrl, filename, mimeType) {
+    const BOT_API = 'https://pixeltap-bot-production.up.railway.app';
+    const userId = this.tg?.initDataUnsafe?.user?.id;
+    if (!userId) {
+      alert('Cannot determine user. Please restart the app.');
+      return;
+    }
+
+    // Show sending indicator
+    const toast = document.createElement('div');
+    toast.id = 'save-toast';
+    toast.style.cssText = `
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;
+      background:rgba(0,0,0,.9);color:#fff;padding:16px 28px;border-radius:12px;
+      font-size:14px;text-align:center;
+    `;
+    toast.textContent = 'Sending to your chat...';
+    document.body.appendChild(toast);
+
+    try {
+      // Convert blob URL to actual blob
+      const response = await fetch(blobUrl);
+      const blob = await response.blob();
+
+      // Convert blob to base64 and send as JSON
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(blob);
+      });
+
+      const res = await fetch(`${BOT_API}/api/send-file`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, filename, mimeType, base64 }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        toast.textContent = 'Sent! Check your chat with the bot';
+        toast.style.background = 'rgba(40,167,69,.9)';
+      } else {
+        throw new Error(data.error || 'Send failed');
+      }
+    } catch (e) {
+      console.error('Send file error:', e);
+      toast.textContent = 'Error sending. Try Share instead.';
+      toast.style.background = 'rgba(220,53,69,.9)';
+
+      // Fallback: show image for long-press save
+      setTimeout(() => {
+        toast.remove();
+        this._showSaveFallback(blobUrl, filename, mimeType);
+      }, 1500);
+      return;
+    }
+
+    URL.revokeObjectURL(blobUrl);
+    setTimeout(() => toast.remove(), 2000);
+  }
+
+  _showSaveFallback(url, filename, mimeType) {
     document.getElementById('save-modal')?.remove();
 
     const modal = document.createElement('div');
@@ -2188,11 +2247,9 @@ class PixelPaintApp {
       padding:20px;gap:12px;
     `;
 
-    const isGif = mimeType === 'image/gif';
-
     modal.innerHTML = `
       <div style="color:#fff;font-size:14px;text-align:center;margin-bottom:8px;">
-        ${isGif ? 'Long press the image below to save GIF' : 'Long press the image below to save'}
+        Long press the image to save
       </div>
       <img src="${url}" style="max-width:90%;max-height:60vh;image-rendering:pixelated;
         border:2px solid #444;border-radius:8px;background:#1a1a2e;" />
@@ -2215,7 +2272,6 @@ class PixelPaintApp {
       URL.revokeObjectURL(url);
     });
 
-    // Try Web Share API (works great on iOS)
     document.getElementById('save-modal-share').addEventListener('click', async () => {
       try {
         const response = await fetch(url);
@@ -2228,8 +2284,6 @@ class PixelPaintApp {
           return;
         }
       } catch (e) { /* share cancelled or failed */ }
-
-      // Fallback: open in new tab
       window.open(url, '_blank');
     });
 
