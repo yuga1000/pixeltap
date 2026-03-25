@@ -2130,7 +2130,7 @@ class PixelPaintApp {
 
     this._saveCurrentFrame();
 
-    const scale = 8;
+    const scale = 16;
     const w = this.pixelCanvas.gridWidth * scale;
     const h = this.pixelCanvas.gridHeight * scale;
 
@@ -2214,7 +2214,7 @@ class PixelPaintApp {
       const data = await res.json();
 
       if (data.ok) {
-        toast.textContent = 'Sent! Check your chat with the bot';
+        toast.innerHTML = 'Saved! Close app to find it<br><small style="opacity:.7">in your chat with @Pixeltap_app_bot</small>';
         toast.style.background = 'rgba(40,167,69,.9)';
       } else {
         throw new Error(data.error || 'Send failed');
@@ -2233,7 +2233,7 @@ class PixelPaintApp {
     }
 
     URL.revokeObjectURL(blobUrl);
-    setTimeout(() => toast.remove(), 2000);
+    setTimeout(() => toast.remove(), 3500);
   }
 
   _showSaveFallback(url, filename, mimeType) {
