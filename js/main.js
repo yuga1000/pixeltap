@@ -1920,6 +1920,20 @@ class PixelPaintApp {
       this._scheduleAutoSave();
     });
 
+    document.getElementById('btn-prev-frame').addEventListener('click', () => {
+      if (this.isPlaying || this.currentFrameIndex <= 0) return;
+      this._saveCurrentFrame();
+      this._loadFrame(this.currentFrameIndex - 1);
+      this._refreshTimeline();
+    });
+
+    document.getElementById('btn-next-frame').addEventListener('click', () => {
+      if (this.isPlaying || this.currentFrameIndex >= this.animFrames.length - 1) return;
+      this._saveCurrentFrame();
+      this._loadFrame(this.currentFrameIndex + 1);
+      this._refreshTimeline();
+    });
+
     document.getElementById('btn-play').addEventListener('click', () => {
       this._togglePlay();
     });
