@@ -705,10 +705,16 @@ html, body {
 
 #frames-container::-webkit-scrollbar { display: none; }
 
+.nav-btn {
+  font-size: 14px;
+  padding: 2px 8px;
+  font-weight: bold;
+}
+
 .frame-thumb {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border: 1px solid var(--border);
   background: var(--bg-primary);
   cursor: pointer;
