@@ -683,9 +683,10 @@ export class PixelCanvas {
     c.width = w;
     c.height = h;
     const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
 
-    const scaleX = w / this.gridWidth;
-    const scaleY = h / this.gridHeight;
+    const scaleX = Math.floor(w / this.gridWidth);
+    const scaleY = Math.floor(h / this.gridHeight);
 
     // Background
     if (this.bgColor) {
@@ -702,7 +703,7 @@ export class PixelCanvas {
           const color = layerData.pixels[y]?.[x];
           if (color) {
             ctx.fillStyle = color;
-            ctx.fillRect(x * scaleX, y * scaleY, scaleX + 0.5, scaleY + 0.5);
+            ctx.fillRect(x * scaleX, y * scaleY, scaleX, scaleY);
           }
         }
       }
