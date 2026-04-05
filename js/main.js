@@ -2498,7 +2498,7 @@ class PixelPaintApp {
     }
     // Block drawing during playback unless live draw mode is on (pencil/eraser/line only)
     if (this.isPlaying && !(this.liveDrawMode && ['pencil', 'eraser', 'line'].includes(this.currentTool))) return;
-    if (e.touches.length === 1 && !this.isPinching) {
+    if (e.touches.length === 1 && !this.isPinching && !this._pinchCooldown) {
       const touch = e.touches[0];
       const grid = this.pixelCanvas.screenToGrid(touch.clientX, touch.clientY);
       const selTools = this.currentTool === 'select' || this.currentTool === 'wand';
@@ -2537,7 +2537,12 @@ class PixelPaintApp {
   }
 
   _onTouchEnd(e) {
-    if (e.touches.length < 2) this.isPinching = false;
+    if (e.touches.length < 2 && this.isPinching) {
+      // After pinch ends, set cooldown to prevent accidental dots
+      this.isPinching = false;
+      this._pinchCooldown = true;
+      setTimeout(() => { this._pinchCooldown = false; }, 150);
+    }
     if (e.touches.length === 0) {
       this._refDragging = false;
       if (this.isDrawing) {
