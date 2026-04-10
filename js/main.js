@@ -2184,16 +2184,24 @@ class PixelPaintApp {
   // UNIVERSAL FILE SAVE (works on iOS / Telegram WebView)
   // ============================================================
   async _saveFile(url, filename, mimeType) {
-    const tg = window.Telegram?.WebApp;
-    const isTgWebView = !!tg;
+    // Convert blob URL to blob + File
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const file = new File([blob], filename, { type: mimeType });
 
-    // Inside Telegram: send file to user via bot
-    if (isTgWebView) {
-      await this._sendViaBot(url, filename, mimeType);
-      return;
+    // 1) Try navigator.share with file (works on iOS Safari/WebView)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        URL.revokeObjectURL(url);
+        return;
+      } catch (e) {
+        // User cancelled or share failed — fall through
+        if (e.name === 'AbortError') { URL.revokeObjectURL(url); return; }
+      }
     }
 
-    // Desktop / outside Telegram: standard download
+    // 2) Try <a download> (works on desktop browsers)
     const link = document.createElement('a');
     link.download = filename;
     link.href = url;
