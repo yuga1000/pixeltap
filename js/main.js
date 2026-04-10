@@ -2144,18 +2144,33 @@ class PixelPaintApp {
 
     this._saveCurrentFrame();
 
-    const scale = 16;
-    const w = this.pixelCanvas.gridWidth * scale;
-    const h = this.pixelCanvas.gridHeight * scale;
+    const gw = this.pixelCanvas.gridWidth;
+    const gh = this.pixelCanvas.gridHeight;
+    // Scale up so each pixel-art pixel is large and crisp
+    // Use power-of-2 scale for clean integer math
+    const scale = gw <= 32 ? 32 : (gw <= 64 ? 16 : 8);
+    const w = gw * scale;
+    const h = gh * scale;
 
     const encoder = new GIFEncoder(w, h);
     encoder.setDelay(Math.round(1000 / this.fps));
     encoder.setRepeat(0); // infinite loop
     encoder.start();
 
+    // Reusable scaled canvas to avoid allocations per frame
+    const scaledCanvas = document.createElement('canvas');
+    scaledCanvas.width = w;
+    scaledCanvas.height = h;
+    const scaledCtx = scaledCanvas.getContext('2d');
+    scaledCtx.imageSmoothingEnabled = false;
+
     for (const frame of this.animFrames) {
-      const canvas = this.pixelCanvas.renderFrameToCanvas(frame, w, h);
-      encoder.addFrame(canvas.getContext('2d'));
+      // Render at 1:1 pixel-perfect (no scaling artifacts possible)
+      const tinyCanvas = this.pixelCanvas.renderFrameToCanvas(frame, gw, gh);
+      // Scale up with nearest-neighbor — guaranteed crisp
+      scaledCtx.clearRect(0, 0, w, h);
+      scaledCtx.drawImage(tinyCanvas, 0, 0, w, h);
+      encoder.addFrame(scaledCtx);
     }
 
     encoder.finish();
@@ -2332,6 +2347,7 @@ class PixelPaintApp {
     canvas.width = sheetW;
     canvas.height = sheetH;
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
 
     // Transparent background
     ctx.clearRect(0, 0, sheetW, sheetH);
