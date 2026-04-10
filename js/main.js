@@ -1953,6 +1953,14 @@ class PixelPaintApp {
       this._exportGIF();
     });
 
+    const mp4Btn = document.getElementById('btn-export-mp4');
+    if (mp4Btn) {
+      mp4Btn.addEventListener('click', () => {
+        if (!this._requirePro('MP4 Export')) return;
+        this._exportMP4();
+      });
+    }
+
     const sheetBtn = document.getElementById('btn-export-sheet');
     if (sheetBtn) {
       sheetBtn.addEventListener('click', () => {
@@ -2178,6 +2186,72 @@ class PixelPaintApp {
     const url = URL.createObjectURL(blob);
 
     this._saveFile(url, `pixeltap-${Date.now()}.gif`, 'image/gif');
+  }
+
+  // ============================================================
+  // MP4 VIDEO EXPORT
+  // ============================================================
+  async _exportMP4() {
+    if (this.animFrames.length < 2) {
+      alert('Add at least 2 frames to export video.');
+      return;
+    }
+
+    this._saveCurrentFrame();
+
+    const gw = this.pixelCanvas.gridWidth;
+    const gh = this.pixelCanvas.gridHeight;
+    const scale = gw <= 32 ? 32 : (gw <= 64 ? 16 : 8);
+    const w = gw * scale;
+    const h = gh * scale;
+
+    // Create offscreen canvas for rendering frames
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    // Check MediaRecorder support
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : MediaRecorder.isTypeSupported('video/webm')
+        ? 'video/webm'
+        : 'video/mp4';
+
+    const stream = canvas.captureStream(0); // 0 = manual frame control
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+    const chunks = [];
+
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+    const done = new Promise((resolve) => {
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const url = URL.createObjectURL(blob);
+        this._saveFile(url, `pixeltap-${Date.now()}.${ext}`, blob.type);
+        resolve();
+      };
+    });
+
+    recorder.start();
+
+    const frameDelay = Math.round(1000 / this.fps);
+    const loopCount = 3; // Record 3 loops for a decent video length
+
+    for (let loop = 0; loop < loopCount; loop++) {
+      for (const frame of this.animFrames) {
+        const tinyCanvas = this.pixelCanvas.renderFrameToCanvas(frame, gw, gh);
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(tinyCanvas, 0, 0, w, h);
+        stream.getVideoTracks()[0].requestFrame();
+        await new Promise(r => setTimeout(r, frameDelay));
+      }
+    }
+
+    recorder.stop();
+    await done;
   }
 
   // ============================================================
